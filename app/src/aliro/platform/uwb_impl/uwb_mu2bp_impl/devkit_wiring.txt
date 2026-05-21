@@ -1,0 +1,16 @@
+
+
+Function       nrf5340dk      SR150evk 2BP   3.3V -> 1.8V  Module Pin
+
+SPI SCLK       GPIO 1.15      TP20           HOST_1              26
+SPI CSn        GPIO 1.11      TP81           HOST_2              27
+SPI MOSI       GPIO 1.13      TP82           HOST_3              28
+SPI MISO       GPIO 1.14      TP83           HOST_4              25
+CE (chip en)   GPIO 1.5       TP84           CHIPENABLE          34
+IRQ            GPIO 1.6       TP85           GPIO05_SENSORINT     4
+SYNC           GPIO 1.7       TP86           GPIO03_WAKEUP       33
+
+GND            GND            TP87           Ground
++5V            5V             TP16           Power
+
+

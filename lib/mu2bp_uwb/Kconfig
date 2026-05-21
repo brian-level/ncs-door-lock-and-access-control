@@ -1,0 +1,17 @@
+#
+# Copyright (c) 2025 Nordic Semiconductor ASA
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+
+config MU2BP_UWB_LIB
+	bool "MU2BP UWB library"
+	depends on SOC_SERIES_NRF53X || SOC_NRF54LM20A
+	help
+	  Enable support for the Murata 2BP UWB chip.
+
+config MU2BP_UWB_ALIRO_ZEPHYR
+	bool "Murata 2BP support from source"
+	help
+	  "Enable building in support for Murata 2BP module"
+

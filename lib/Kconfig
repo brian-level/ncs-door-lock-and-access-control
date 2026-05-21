@@ -6,3 +6,4 @@
 
 orsource "aliro/Kconfig"
 rsource "qm35_uwb/Kconfig"
+rsource "mu2bp_uwb/Kconfig"

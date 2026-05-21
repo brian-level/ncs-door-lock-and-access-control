@@ -149,7 +149,7 @@ AliroError StorageInit()
 void PrintUwbInfo()
 {
 	using namespace Aliro::Uwb;
-
+#if 0
 	VerifyOrReturn(UltraWideBandImpl::Instance().IsInitialized(), LOG_INF("[UWB] Not initialized yet"));
 
 	const char *fwVersion = UltraWideBandImpl::Instance().GetQm35FirmwareVersion();
@@ -164,6 +164,7 @@ void PrintUwbInfo()
 	} else {
 		LOG_INF("[UWB] CCC: N/A");
 	}
+#endif
 }
 
 #endif // CONFIG_DOOR_LOCK_BLE_UWB

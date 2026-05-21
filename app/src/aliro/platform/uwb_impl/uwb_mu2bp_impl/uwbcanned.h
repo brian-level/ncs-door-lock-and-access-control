@@ -1,0 +1,111 @@
+
+#pragma once
+
+#include <stdint.h>
+
+/* Adapted from
+     MTD-SCP-102-A_DS-TWR_SR150_Unicast_v040600_2.py
+     2bp_nearbyinteraction
+     SR150_UCI_Specification_v1.23_Murata.pdf
+*/
+// session ID in commands is always the first 4 data bytes
+#define UWB_SESSION_ID_OFFSET_IN_CMD (4)
+
+extern const uint8_t UWB_INIT_BOARD_VARIANT[];
+extern const uint32_t UWB_INIT_BOARD_VARIANT_SIZE;
+extern const uint8_t UWB_RESET_DEVICE[];
+extern const uint32_t UWB_RESET_DEVICE_SIZE;
+extern const uint8_t UWB_CORE_GET_DEVICE_INFO_CMD[];
+extern const uint32_t UWB_CORE_GET_DEVICE_INFO_CMD_SIZE;
+extern const uint8_t UWB_CORE_GET_CAPS_INFO_CMD[];
+extern const uint32_t UWB_CORE_GET_CAPS_INFO_CMD_SIZE;
+extern const uint8_t UWB_CORE_SET_CONFIG[];
+extern const uint32_t UWB_CORE_SET_CONFIG_SIZE;
+extern const uint8_t UWB_CORE_SET_ANTENNAS_DEFINE_2BP[];
+extern const uint32_t UWB_CORE_SET_ANTENNAS_DEFINE_2BP_SIZE;
+extern const uint8_t UWB_CORE_SET_ANTENNAS_DEFINE_2JE[];
+extern const uint32_t UWB_CORE_SET_ANTENNAS_DEFINE_2JE_SIZE;
+extern const uint8_t UWB_CORE_SET_ANTENNAS_DEFINE_1F1B[];
+extern const uint32_t UWB_CORE_SET_ANTENNAS_DEFINE_1F1B_SIZE;
+extern       uint8_t UWB_SESSION_INIT_RANGING[];
+extern const uint32_t UWB_SESSION_INIT_RANGING_SIZE;
+// used after init-ranging for devkit ranging
+extern       uint8_t UWB_SESSION_SET_APP_CONFIG[];
+extern const uint32_t UWB_SESSION_SET_APP_CONFIG_SIZE;
+//used after set-profile, the full app config breaks mobile dev ranging
+extern       uint8_t UWB_SESSION_SET_XAPP_CONFIG[];
+extern const uint32_t UWB_SESSION_SET_XAPP_CONFIG_SIZE;
+// used after init-ranging for devkit ranging
+extern       uint8_t UWB_SESSION_SET_APP_CONFIG_NXP[];
+extern const uint32_t UWB_SESSION_SET_APP_CONFIG_NXP_SIZE;
+//used after set-profile, the full app config breaks mobile dev ranging
+extern       uint8_t UWB_SESSION_SET_XAPP_CONFIG_NXP[];
+extern const uint32_t UWB_SESSION_SET_XAPP_CONFIG_NXP_SIZE;
+extern const uint8_t UWB_VENDOR_COMMAND[];
+extern const uint32_t UWB_VENDOR_COMMAND_SIZE;
+extern       uint8_t UWB_SESSION_SET_INITIATOR_CONFIG[];
+extern const uint32_t UWB_SESSION_SET_INITIATOR_CONFIG_SIZE;
+extern       uint8_t UWB_SESSION_SET_RESPONDER_CONFIG[];
+extern const uint32_t UWB_SESSION_SET_RESPONDER_CONFIG_SIZE;
+extern       uint8_t UWB_SESSION_SET_DEBUG_CONFIG[];
+extern const uint32_t UWB_SESSION_SET_DEBUG_CONFIG_SIZE;
+extern       uint8_t UWB_RANGE_START[];
+extern const uint32_t UWB_RANGE_START_SIZE;
+extern       uint8_t UWB_RANGE_STOP[];
+extern const uint32_t UWB_RANGE_STOP_SIZE;
+extern       uint8_t UWB_SESSION_DEINIT[];
+extern const uint32_t UWB_SESSION_DEINIT_SIZE;
+extern       uint8_t UWB_SET_CALIBRATION_TX_POWER_CH5[];
+extern const uint32_t UWB_SET_CALIBRATION_TX_POWER_CH5_SIZE;
+extern       uint8_t UWB_SET_CALIBRATION_TX_POWER_CH9[];
+extern const uint32_t UWB_SET_CALIBRATION_TX_POWER_CH9_SIZE;
+extern       uint8_t UWB_SET_CALIBRATION_RF_CLK_ACCURACY_CALIB_CH5[];
+extern const uint32_t UWB_SET_CALIBRATION_RF_CLK_ACCURACY_CALIB_CH5_SIZE;
+extern       uint8_t UWB_SET_CALIBRATION_RF_CLK_ACCURACY_CALIB_CH9[];
+extern const uint32_t UWB_SET_CALIBRATION_RF_CLK_ACCURACY_CALIB_CH9_SIZE;
+extern const uint8_t UWB_CORE_SET_PDOA_CALIB_TABLE_DEFINE[];
+extern const uint32_t UWB_CORE_SET_PDOA_CALIB_TABLE_DEFINE_SIZE;
+extern const uint8_t UWB_SET_CALIBRATION_RX_ANT_DELAY_CALIB_CH5[];
+extern const uint32_t UWB_SET_CALIBRATION_RX_ANT_DELAY_CALIB_CH5_SIZE;
+extern const uint16_t UWB_SET_CALIBRATION_RX_ANT_DELAY_CALIB_CH9_2BP;
+extern const uint16_t UWB_SET_CALIBRATION_RX_ANT_DELAY_CALIB_CH9_2JE;
+extern       uint8_t UWB_SET_CALIBRATION_RX_ANT_DELAY_CALIB_CH9[];
+extern const uint32_t UWB_SET_CALIBRATION_RX_ANT_DELAY_CALIB_CH9_SIZE;
+extern const uint32_t UWB_SET_CALIBRATION_VAR_OFFSET;
+extern const uint8_t UWB_SET_CALIBRATION_AOA_ANTENNAS_PDOA_CALIB_PAIR1_CH5[];
+extern const uint32_t UWB_SET_CALIBRATION_AOA_ANTENNAS_PDOA_CALIB_PAIR1_CH5_SIZE;
+extern const uint8_t UWB_SET_CALIBRATION_AOA_ANTENNAS_PDOA_CALIB_PAIR2_CH5[];
+extern const uint32_t UWB_SET_CALIBRATION_AOA_ANTENNAS_PDOA_CALIB_PAIR2_CH5_SIZE;
+extern const uint8_t UWB_SET_CALIBRATION_AOA_ANTENNAS_PDOA_CALIB_PAIR1_CH9_2BP[];
+extern const uint8_t UWB_SET_CALIBRATION_AOA_ANTENNAS_PDOA_CALIB_PAIR1_CH9_2JE[];
+extern       uint8_t UWB_SET_CALIBRATION_AOA_ANTENNAS_PDOA_CALIB_PAIR1_CH9[];
+extern const uint32_t UWB_SET_CALIBRATION_AOA_ANTENNAS_PDOA_CALIB_PAIR1_CH9_SIZE;
+extern const uint8_t UWB_SET_CALIBRATION_AOA_ANTENNAS_PDOA_CALIB_PAIR2_CH9[];
+extern const uint32_t UWB_SET_CALIBRATION_AOA_ANTENNAS_PDOA_CALIB_PAIR2_CH9_SIZE;
+extern const uint8_t UWB_SET_CALIBRATION_PDOA_OFFSET_CALIB_CH5[];
+extern const uint32_t UWB_SET_CALIBRATION_PDOA_OFFSET_CALIB_CH5_SIZE;
+extern const uint16_t UWB_SET_CALIBRATION_PDOA_OFFSET_CALIB_CH9_2BP[];
+extern const uint16_t UWB_SET_CALIBRATION_PDOA_OFFSET_CALIB_CH9_2JE[];
+extern       uint8_t UWB_SET_CALIBRATION_PDOA_OFFSET_CALIB_CH9[];
+extern const uint32_t UWB_SET_CALIBRATION_PDOA_OFFSET_CALIB_CH9_SIZE;
+extern const uint8_t UWB_SET_CALIBRATION_AOA_THRESHOLD_PDOA_CH5[];
+extern const uint32_t UWB_SET_CALIBRATION_AOA_THRESHOLD_PDOA_CH5_SIZE;
+extern const uint16_t UWB_SET_CALIBRATION_AOA_THRESHOLD_PDOA_CH9_2BP[];
+extern const uint16_t UWB_SET_CALIBRATION_AOA_THRESHOLD_PDOA_CH9_2JE[];
+extern       uint8_t UWB_SET_CALIBRATION_AOA_THRESHOLD_PDOA_CH9[];
+extern const uint32_t UWB_SET_CALIBRATION_AOA_THRESHOLD_PDOA_CH9_SIZE;
+extern const uint8_t UWB_SET_CALIBRATION_PDOA_MANUFACT_ZERO_OFFSET_CALIB_CH5[];
+extern const uint32_t UWB_SET_CALIBRATION_PDOA_MANUFACT_ZERO_OFFSET_CALIB_CH5_SIZE;
+extern const uint16_t UWB_SET_CALIBRATION_PDOA_MANUFACT_ZERO_OFFSET_CALIB_CH9_2BP[];
+extern const uint16_t UWB_SET_CALIBRATION_PDOA_MANUFACT_ZERO_OFFSET_CALIB_CH9_2JE[];
+extern       uint8_t UWB_SET_CALIBRATION_PDOA_MANUFACT_ZERO_OFFSET_CALIB_CH9[];
+extern const uint32_t UWB_SET_CALIBRATION_PDOA_MANUFACT_ZERO_OFFSET_CALIB_CH9_SIZE;
+extern const uint8_t UWB_SET_CALIBRATION_PDOA_MULTIPOINT_CALIB_CH5[];
+extern const uint32_t UWB_SET_CALIBRATION_PDOA_MULTIPOINT_CALIB_CH5_SIZE;
+extern const uint8_t UWB_SET_CALIBRATION_PDOA_MULTIPOINT_CALIB_CH9[];
+extern const uint32_t UWB_SET_CALIBRATION_PDOA_MULTIPOINT_CALIB_CH9_SIZE;
+extern const uint8_t UWB_EXT_READ_CALIB_DATA_XTAL_CAP[];
+extern const uint32_t UWB_EXT_READ_CALIB_DATA_XTAL_CAP_SIZE;
+extern       uint8_t UWB_EXT_READ_CALIB_DATA_TX_POWER[];
+extern const uint32_t UWB_EXT_READ_CALIB_DATA_TX_POWER_SIZE;
+

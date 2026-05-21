@@ -1,0 +1,102 @@
+/*
+ * Copyright (c) 2025 Nordic Semiconductor ASA
+ *
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+ */
+
+
+&pinctrl {
+	i2c2_default: i2c2_default {
+		group1 {
+			psels = <NRF_PSEL(TWIM_SDA, 1, 9)>,
+				<NRF_PSEL(TWIM_SCL, 1, 8)>;
+	        bias-pull-up;
+		};
+	};
+
+	i2c2_sleep: i2c2_sleep {
+		group1 {
+			psels = <NRF_PSEL(TWIM_SDA, 1, 9)>,
+				<NRF_PSEL(TWIM_SCL, 1, 8)>;
+			low-power-enable;
+	        bias-pull-up;
+		};
+	};
+};
+
+&spi1 {
+	/* CS array: @0: NFC reader             @1: Murata 2BP UWB module */
+	cs-gpios = <&gpio1 12 GPIO_ACTIVE_LOW>, <&gpio1 11 GPIO_ACTIVE_LOW>;
+
+	uci_spi: uci_spi@1 {
+		compatible = "vnd,spi-device";
+		status = "okay";
+		reg = <1>;
+		spi-max-frequency = <DT_FREQ_M(8)>;
+	};
+};
+
+&i2c2 {
+    compatible = "nordic,nrf-twim";
+	zephyr,flash-buf-max-size = <2048>;
+    status = "okay";
+    clock-frequency = <I2C_BITRATE_FAST>;
+    pinctrl-0 = <&i2c2_default>;
+    pinctrl-1 = <&i2c2_sleep>;
+    pinctrl-names = "default", "sleep";
+
+	/* SSD1306 OLED display */
+    display: ssd1306@3c {
+        compatible = "solomon,ssd1306fb";
+        reg = <0x3c>;
+        label = "SSD1306";
+        height = <32>;
+        width  = <128>;
+        segment-offset  = <0>;
+        page-offset     = <0>;
+        display-offset  = <0>;
+        multiplex-ratio = <31>;
+        prechargep      = <0xD1>;
+        segment-remap;
+        com-invdir;
+        com-sequential;
+    };
+};
+
+/ {
+	gpio {
+		compatible = "gpio-leds";
+
+		// sync
+		uwb_spi_sync: uwb_gpio_1 {
+			gpios = <&gpio1 7 (GPIO_ACTIVE_HIGH)>;
+		};
+
+		// irq
+		uwb_spi_irq: uwb_gpio_2 {
+			gpios = <&gpio1 6 (GPIO_ACTIVE_HIGH)>;
+		};
+
+		// ce
+		uwb_spi_ce: uwb_gpio_3 {
+			gpios = <&gpio1 5 (GPIO_ACTIVE_HIGH)>;
+		};
+
+		// antenna sel
+		uwb_ant_sel: uwb_gpio_4 {
+			gpios = <&gpio1 4 (GPIO_ACTIVE_HIGH)>;
+		};
+
+		// in out indicator led
+		inout_led: uwb_gpio_5 {
+			gpios = <&gpio0 28 (GPIO_ACTIVE_HIGH)>;
+		};
+
+		// intent indicator led
+		intent_led: uwb_gpio_6 {
+			gpios = <&gpio0 29 (GPIO_ACTIVE_HIGH)>;
+		};
+	};
+};
+
+
