@@ -48,7 +48,6 @@ static struct
     uint8_t  invert_antenna;
     uint8_t  dump_proto;
     uint8_t  antenna_mode;
-    bool     pnpmode;
     bool do_AoA_Calibration;
     bool do_Calibration;
     bool do_OTP_Read_Power;
@@ -1634,7 +1633,7 @@ int UWBslice(uint32_t *delay)
         return 0;
     }
 
-    if (mUWB.state != UWB_IDLE || mUWB.pnpmode)
+    if (mUWB.state != UWB_IDLE)
     {
         ret = UCIprotoSlice(&gotMessage, &type, &gid, &oid, &payload, &payloadLength, delay);
 
@@ -1647,139 +1646,6 @@ int UWBslice(uint32_t *delay)
         else
         {
             mUWB.sliceErrors = 0;
-#if CONFIG_USB_CDC_ACM
-
-            if (mUWB.pnpmode)
-            {
-                static bool mUartOK;
-                uint32_t xferlen;
-                int wc;
-                int rc;
-
-                if (!mUartOK)
-                {
-                    ret = NrfUartInit(UART_USB, 3000000);
-
-                    if (ret && ret != -ETIMEDOUT)
-                    {
-                        LOG_ERR("UART cant be used, stopping PnP mode");
-                        mUWB.pnpmode = false;
-                        ret = 0;
-                    }
-                    else if (!ret)
-                    {
-                        LOG_INF("USB-UART Initialized for UCI Passthrough");
-                        mUartOK = true;
-                    }
-                }
-
-                if (gotMessage)
-                {
-                    // cancel response timeout
-                    //
-                    mUWB.state_timer = 0;
-
-                    // reformat message in to raw bytes like pnp expects and send on wire
-                    //
-                    if (mUartOK)
-                    {
-                        uint8_t *uci = mUWB.configData;
-
-                        xferlen = payloadLength + UCI_MSG_HDR_SIZE;
-
-                        if (xferlen + 3 > sizeof(mUWB.configData))
-                        {
-                            LOG_ERR("UCI buffer overflow");
-                        }
-                        else
-                        {
-                            // Note there are no protocol bytes prepended for the uplink, just
-                            // the downlink.. Silly but that is what it is
-                            //
-                            uci[0] = (type << UCI_MT_SHIFT) | ((gid << UCI_GID_SHIFT) & UCI_GID_MASK);
-                            uci[1] = (oid << UCI_OID_SHIFT) & UCI_OID_MASK;
-                            uci[2] = 0; // RFU
-                            uci[3] = payloadLength;
-
-                            if (payloadLength > 0)
-                            {
-                                memcpy(&uci[ UCI_MSG_HDR_SIZE ], payload, payloadLength);
-                            }
-
-                            wc = NrfUartWrite(UART_USB, mUWB.configData, xferlen);
-
-                            if (wc != xferlen)
-                            {
-                                LOG_ERR("UCI PnP write error");
-                            }
-                            else
-                            {
-                                *delay = 0;
-                                LOG_DBG("PnP UCI tx %d", wc);
-                            }
-                        }
-                    }
-                }
-                else if (mUWB.state_timer != 0)
-                {
-                    // check response timer
-                    //
-                    volatile uint64_t now = k_uptime_get();
-
-                    if (now  > mUWB.state_timer)
-                    {
-                        LOG_ERR("Did not receive response, resetting");
-                        _uwb_reset();
-                    }
-                }
-
-                // poll usb serial for any pending commands to send
-                //
-                if (mUartOK)
-                {
-                    uint8_t uart_hdr[4];
-
-                    // read 3 byte serial header
-                    rc = NrfUartRead(UART_USB, uart_hdr, 3);
-
-                    if (rc == 3)
-                    {
-                        if (uart_hdr[ 0 ] != 0x01)
-                        {
-                            LOG_ERR("PnP protocol err");
-                        }
-                        else
-                        {
-                            xferlen = ((uint32_t)uart_hdr[ 1 ] << 8) | uart_hdr[ 2 ];
-
-                            rc = NrfUartRead(UART_USB, mUWB.configData, (int)xferlen);
-
-                            if (rc > 0)
-                            {
-                                *delay = 0;
-                                TimeSignalApplicationEvent();
-
-                                // got data to send, send it and set response wait timer
-                                //
-                                LOG_DBG("PnP UCI rx %d of %u", rc, xferlen);
-
-                                ret = UCIprotoWriteRaw(mUWB.configData, rc);
-
-                                if (!ret)
-                                {
-                                    mUWB.state_timer = k_uptime_get() + 2000;
-                                }
-                                else
-                                {
-                                    LOG_ERR("Didn't UCIRaw %d", rc);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-#endif // pnpmode supported
         }
     }
     else
@@ -1793,8 +1659,7 @@ int UWBslice(uint32_t *delay)
     case UWB_IDLE:
         session = _uwb_find_session_by_state(UWB_SS_CREATED);
 
-        if (session || (mUWB.one_time_init_request && (k_uptime_get() > 500))
-           )
+        if (session || (mUWB.one_time_init_request && (k_uptime_get() > 500)))
         {
             // Bring up the UCI interface
             // (setup SPI, load f/w and init UCI)
@@ -1812,7 +1677,7 @@ int UWBslice(uint32_t *delay)
         break;
 
     case UWB_SESSION:
-        if (UCIready() && !mUWB.pnpmode)
+        if (UCIready())
         {
             ret = _uwb_initialize(gotMessage, type, gid, oid, payload, payloadLength);
 
@@ -1861,13 +1726,7 @@ int UWBinit(session_state_callback_t inSessionStateCallback,
             const uint8_t inAntennaMode,
             const int inFlopRate,
             const uint8_t inDumpProto,
-            const bool inSendCSV,
-            const bool inPnPMode,
             const bool inHaveDisplay,
-            const int inDistanceFilterWindow,
-            const int inAzimuthFilterWindow,
-            const int inElevationFilterWindow,
-            const int inRSSIFilterWindow,
             const int16_t inRSSIoffset[2])
 {
     int ret = 0;
@@ -1884,12 +1743,11 @@ int UWBinit(session_state_callback_t inSessionStateCallback,
     mUWB.flop_rate = inFlopRate;
     mUWB.invert_antenna = 0x00;
     mUWB.dump_proto = inDumpProto;
-    mUWB.pnpmode = inPnPMode;
 
     /* note this has to exactly match "other radio" of
      * the ranging session to work, so beware
      */
-    mUWB.channel_id = 0x09;
+    mUWB.channel_id = UWB_CHANNEL_NUMBER;
     mUWB.is_responder = true;
 
     mUWB.do_AoA_Calibration = true;
@@ -1909,15 +1767,6 @@ int UWBinit(session_state_callback_t inSessionStateCallback,
     //
     mUWB.one_time_init_request = true;
 
-#if 0
-    ret = UWBrangeInit(inSendCSV,
-                       inHaveDisplay,
-                       inDistanceFilterWindow,
-                       inAzimuthFilterWindow,
-                       inElevationFilterWindow,
-                       inRSSIFilterWindow,
-                       inRSSIoffset);
-#endif
     return ret;
 }
 

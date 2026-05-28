@@ -2,7 +2,8 @@ zephyr_include_directories(.)
 
 SET(uwb_src
 		uwb_impl.cpp
-        nearbyinteraction.c
+		aliro_uwb.c
+        uwb_cli.c
         uwbproto.c
 		uwbcanned.c
 		uciproto.c

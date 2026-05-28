@@ -17,6 +17,8 @@ extern "C" {
 #define UWB_MAX_CONFIG_DATA (128)
 #define UWB_MAX_UCI_MESSAGE (264)
 
+#define UWB_CHANNEL_NUMBER              (9)
+
 #define UWB_IOS_SPEC_VERSION_MAJOR      (1)
 #define UWB_IOS_SPEC_VERSION_MINOR      (1)
 
@@ -311,13 +313,7 @@ int UWBinit(session_state_callback_t inSessionStateCallback,
             const uint8_t inAntennaMode,
             const int inFlopRate,
             const uint8_t inDumpProto,
-            const bool inSendCSV,
-            const bool inPnpMode,
             const bool inHaveDisplay,
-            const int inDistanceFilterWindow,
-            const int inAzimuthFilterWindow,
-            const int inElevationFilterWindow,
-            const int inRSSIFilterWindow,
             const int16_t inRSSIoffset[2]);
 
 #ifdef __cplusplus

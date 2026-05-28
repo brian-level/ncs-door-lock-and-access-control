@@ -7,7 +7,9 @@
 #pragma once
 
 #include "aliro/errors.h"
+#include "aliro/utils.h"
 #include "uwb.h"
+#include "uwbproto.h"
 
 #include <cstddef>
 
@@ -17,6 +19,9 @@
 
 namespace Aliro::Uwb
 {
+
+#define NI_MAX_CONNECTIONS  (UWB_MAX_SESSIONS)
+#define NI_MAX_MESSAGE      (256)
 
 /**
  * @class UltraWideBandImpl
@@ -60,10 +65,59 @@ private:
     UltraWideBandImpl() = default;
     ~UltraWideBandImpl() = default;
 
-    struct k_sem        mStartSem;
-    struct k_thread     mThread;
+    typedef enum
+    {
+        SS_INACTIVE,    // nothing happening
+        SS_STARTING,    // we asked session to start
+        SS_INIT,        // uwb told us it inited a session
+        SS_IDLE,        // uwb told us session is created and ready
+        SS_ACTIVE,      // uwb told us session is running
+        SS_OVER         // for any reason, session is stopping
+    }
+    e_session_state_t;
 
-    static bool sThreadStarted;
+    struct uwbSessionContext
+    {
+        uwbSessionContext(SessionContextHandle sessionContextHandle)
+            : sessionHandle(sessionContextHandle)
+        {
+        }
+
+        sys_snode_t mSessionContextNode{};
+
+        SessionContextHandle sessionHandle;
+        CryptoTypes::Ursk ursk;
+        ProtocolVersion protocolVersion;
+
+        bool        in_use;
+        uint32_t    session_id;
+        uint8_t     device_role;
+        uint8_t     device_type;
+        uint8_t     profile_id;
+        uint8_t     our_mac_addr[2];
+        uint16_t    our_uwb_ver[2];
+
+        e_session_state_t session_state;
+    };
+
+    void TransmitBleMessage(SessionContextHandle sessionHandle, uint8_t *data, size_t length);
+
+    struct uwbSessionContext *FindSession(const struct uwbSessionContext *uwbSessionCtx);
+    struct uwbSessionContext *FindSession(const SessionContextHandle sessionHandle);
+    AliroError AddSession(SessionContextHandle sessionHandle);
+    void RemoveSession(struct uwbSessionContext *sessionCtx);
+    void RemoveAllSessions();
+
+    sys_slist_t     mActiveSessionsList{};
+    uint8_t         mMessage[NI_MAX_MESSAGE];
+
+    Callbacks       mCallbacks{};
+
+    struct k_sem    mStartSem;
+    struct k_thread mThread;
+    k_mutex         mMutex{};
+
+    static bool     sThreadStarted;
 };
 
 } // namespace Aliro::Uwb
