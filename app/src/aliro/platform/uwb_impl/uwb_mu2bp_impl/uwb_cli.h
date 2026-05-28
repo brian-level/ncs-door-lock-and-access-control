@@ -8,6 +8,8 @@ extern "C" {
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "uwbproto.h"
+
 int TimeWaitApplicationEvent(uint32_t inDelay);
 void TimeSignalApplicationEvent(void);
 int UWBcliInit(session_state_callback_t sessionStateCallback, const bool inHaveDisplay);

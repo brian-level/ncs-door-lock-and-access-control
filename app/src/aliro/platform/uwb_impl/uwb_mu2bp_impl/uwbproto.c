@@ -6,7 +6,7 @@
 #include "ucidefs.h"
 #include "uciextdefs.h"
 #include "nrfspi.h"
-#include "nearbyinteraction.h"
+#include "uwb_cli.h"
 #include "assertmacros.h"
 
 #include <stdio.h>
@@ -1720,6 +1720,38 @@ int UWBslice(uint32_t *delay)
     }
 
     return ret;
+}
+
+void UWBinitSessionParameters(uwb_session_params_t *params)
+{
+    memset(params, 0, sizeof(uwb_session_params_t));
+
+    params->configIdentifier = 1;
+
+    if (UWB_CHANNEL_NUMBER == 5)
+    {
+        params->channelBitmask |= (1 << 0);
+    }
+    else if (UWB_CHANNEL_NUMBER == 9)
+    {
+        params->channelBitmask |= (1 << 1);
+    }
+    else
+    {
+        LOG_ERR("Not supporting non 5/9 channel");
+    }
+
+    params->pulseShapeCombo = 0;
+    params->syncCodeIndexBitmask = 0;
+    params->ranMultiplier = 0;
+    params->hoppingBitmask = 0;
+    params->chapsPerSlot = 4;
+    params->slotsPerRound = 9;
+    params->respondersNodes = 1;
+    params->macMode = 0;
+    params->stsIndex0 = 0;
+    params->uwbTime0 = 0;
+    params->syncCodeIndex = 0;
 }
 
 int UWBinit(session_state_callback_t inSessionStateCallback,

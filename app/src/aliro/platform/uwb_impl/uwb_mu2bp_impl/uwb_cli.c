@@ -1,4 +1,4 @@
-#include "nearbyinteraction.h"
+#include "uwb_cli.h"
 #include "uwbproto.h"
 #include "uwbdefs.h"
 #include "uwbcanned.h"

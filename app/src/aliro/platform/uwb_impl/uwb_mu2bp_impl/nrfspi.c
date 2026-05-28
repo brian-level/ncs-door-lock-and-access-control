@@ -1,5 +1,5 @@
 #include "nrfspi.h"
-#include "nearbyinteraction.h"
+#include "uwb_cli.h"
 #include "assertmacros.h"
 
 #include <stdio.h>

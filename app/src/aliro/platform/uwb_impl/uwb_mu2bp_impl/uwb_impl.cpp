@@ -195,7 +195,7 @@ AliroError UltraWideBandImpl::_HandleBleMessage(const uint8_t *data, size_t leng
 {
     int ret;
     struct uwbSessionContext *connection;
-    size_t out_length;
+    size_t outLength;
 
     LOG_HEXDUMP_INF(data, length, "BLE BLOB");
 
@@ -209,16 +209,45 @@ AliroError UltraWideBandImpl::_HandleBleMessage(const uint8_t *data, size_t leng
     switch (data[0])
     {
     case ALIRO_PROTO_TYPE_AP:
+        VerifyOrReturnStatus(length > 0, ALIRO_INVALID_ARGUMENT);
         LOG_INF("BLE Msg: AP %02x", data[1]);
         break;
     case ALIRO_PROTO_TYPE_UWB:
+        VerifyOrReturnStatus(length > 0, ALIRO_INVALID_ARGUMENT);
         LOG_INF("BLE Msg: UWB %02x", data[1]);
+        switch (data[1])
+        {
+        case ALIRO_PT_UWB_SSM2:
+            VerifyOrReturnStatus(length > 4, ALIRO_INVALID_ARGUMENT);
+            ret = AliroUWBparseM2(&connection->sessionParameters, data + 4, length - 4);
+            VerifyOrReturnStatus(!ret, ALIRO_ERROR_INTERNAL);
+            ret = AliroUWBbuildM3(&connection->sessionParameters, mMessage, sizeof(mMessage), &outLength);
+            VerifyOrReturnStatus(!ret && outLength > 0, ALIRO_ERROR_INTERNAL);
+            LOG_HEXDUMP_INF(mMessage, outLength, "M3 -------------------");
+            TransmitBleMessage(connection->sessionHandle, mMessage, outLength);
+            break;
+        case ALIRO_PT_UWB_SSM4:
+            VerifyOrReturnStatus(length > 4, ALIRO_INVALID_ARGUMENT);
+            ret = AliroUWBparseM4(&connection->sessionParameters, data + 4, length - 4);
+            VerifyOrReturnStatus(!ret, ALIRO_ERROR_INTERNAL);
+            break;
+        case ALIRO_PT_UWB_SUSPEND_REQ:
+        case ALIRO_PT_UWB_SUSPEND_RSP:
+        case ALIRO_PT_UWB_RESUME_REQ:
+        case ALIRO_PT_UWB_RESUME_RSP:
+        case ALIRO_PT_UWB_SSM1:
+        case ALIRO_PT_UWB_SSM3:
+            LOG_ERR("Unexpected UWB Msg");
+            break;
+        }
         break;
     case ALIRO_PROTO_TYPE_NOTIFICATION:
+        VerifyOrReturnStatus(length > 0, ALIRO_INVALID_ARGUMENT);
         LOG_INF("BLE Msg: NTF %02x", data[1]);
         switch (data[1])
         {
         case ALIRO_PT_NOTIFICATION_EVENT:
+            VerifyOrReturnStatus(length > 1, ALIRO_INVALID_ARGUMENT);
             LOG_INF("Event Notification %02x", data[2]);
             switch (data[2])
             {
@@ -236,10 +265,10 @@ AliroError UltraWideBandImpl::_HandleBleMessage(const uint8_t *data, size_t leng
 
             // Build an UWB M1 message and send back
             //
-            ret = AliroUWBbuildM1(mMessage, sizeof(mMessage), &out_length);
-            VerifyOrReturnStatus(ret == 0 && out_length > 0, ALIRO_ERROR_INTERNAL, LOG_ERR("Can't build M1"));
-            LOG_HEXDUMP_INF(mMessage, out_length, "M1 -------------------");
-            TransmitBleMessage(connection->sessionHandle, mMessage, out_length);
+            ret = AliroUWBbuildM1((uint32_t)connection->sessionIdentifier, &connection->sessionParameters, mMessage, sizeof(mMessage), &outLength);
+            VerifyOrReturnStatus(ret == 0 && outLength > 0, ALIRO_ERROR_INTERNAL, LOG_ERR("Can't build M1"));
+            LOG_HEXDUMP_INF(mMessage, outLength, "M1 -------------------");
+            TransmitBleMessage(connection->sessionHandle, mMessage, outLength);
             break;
         case ALIRO_PT_NOTIFICATION_RDR_STATUS_CHANGE:
             break;
@@ -368,6 +397,7 @@ AliroError UltraWideBandImpl::_ConfigureRangingSession(SessionIdentifier session
     connection = FindSession(sessionHandle);
     VerifyOrReturnValue(connection != NULL, ALIRO_NO_MEMORY);
 
+    connection->sessionIdentifier = sessionIdentifier;
     connection->ursk = ursk;
     connection->protocolVersion = protocolVersion;
 

@@ -132,6 +132,26 @@ uwb_device_info_t;
 
 typedef struct
 {
+    uint16_t configIdentifier;
+    uint8_t pulseShapeCombo;
+    uint8_t channelBitmask;
+    uint32_t syncCodeIndexBitmask;
+    uint32_t syncCodeIndex;
+    uint8_t ranMultiplier;
+    uint8_t hoppingBitmask;
+    uint32_t hopModeKey;
+    uint8_t chapsPerSlot;
+    uint8_t slotsPerRound;
+    uint8_t slotBitmask;
+    uint8_t respondersNodes;
+    uint8_t macMode;
+    uint8_t stsIndex0;
+    uint8_t uwbTime0;
+}
+uwb_session_params_t;
+
+typedef struct
+{
     uwb_session_state_t session_state;
 
     uint8_t     uci_session_state;
@@ -290,6 +310,8 @@ static inline int _UWB_PUT_DATA(uint8_t **pcursor, int *room, const uint8_t *dat
 exit:
     return ret;
 }
+
+void UWBinitSessionParameters(uwb_session_params_t *inoutParams);
 
 int UWBgetDeviceInfo(uwb_device_info_t **outDevInfo);
 

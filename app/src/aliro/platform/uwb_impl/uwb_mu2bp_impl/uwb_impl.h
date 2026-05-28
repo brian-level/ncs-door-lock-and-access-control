@@ -81,13 +81,16 @@ private:
         uwbSessionContext(SessionContextHandle sessionContextHandle)
             : sessionHandle(sessionContextHandle)
         {
+            UWBinitSessionParameters(&sessionParameters);
         }
 
         sys_snode_t mSessionContextNode{};
 
+        SessionIdentifier sessionIdentifier;
         SessionContextHandle sessionHandle;
         CryptoTypes::Ursk ursk;
         ProtocolVersion protocolVersion;
+        uwb_session_params_t sessionParameters;
 
         bool        in_use;
         uint32_t    session_id;
