@@ -91,4 +91,23 @@
 //
 #define ALIRO_ATTR_NTF_RDR_STATUS_CHANGE_STATE      (0)
 
+// Operation Source
+//
+#define ALIRO_OP_SRC_UNSPECIFIED		             (0)
+#define ALIRO_OP_SRC_MANUAL		                    (1)
+#define ALIRO_OP_SRC_AUTO	                        (2)
+#define ALIRO_OP_SRC_SCHEDULE		                (3)
+#define ALIRO_OP_SRC_THIS_USER_BLE_UWB		        (4)
+#define ALIRO_OP_SRC_THIS_USER_NFC		            (5)
+#define ALIRO_OP_SRC_THIS_USER_BLE_ONLY		        (6)
+#define ALIRO_OP_SRC_MATTER		                    (7)
+
+// Reader-States
+//
+#define RDR_STATUS_SECURED                          (0)
+#define RDR_STATUS_UNSECURED                        (1)
+#define RDR_STATUS_JAMMED                           (2)
+#define RDR_STATUS_STARTED_SECURE                   (0x80)
+#define RDR_STATUS_STARTED_UNSECURE                 (0x81)
+#define RDR_STATUS_UNKNOWN                          (0x82)
 

@@ -10,6 +10,7 @@
 #include "aliro/utils.h"
 #include "uwb.h"
 #include "uwbproto.h"
+#include "aliro_uwb.h"
 
 #include <cstddef>
 
@@ -61,20 +62,11 @@ public:
     UltraWideBandImpl(UltraWideBandImpl &&) = delete;
     UltraWideBandImpl &operator=(UltraWideBandImpl &&) = delete;
 
+    int SessionStateChanged(uwb_session_t *session, uint8_t state, uint8_t reason);
+
 private:
     UltraWideBandImpl() = default;
     ~UltraWideBandImpl() = default;
-
-    typedef enum
-    {
-        SS_INACTIVE,    // nothing happening
-        SS_STARTING,    // we asked session to start
-        SS_INIT,        // uwb told us it inited a session
-        SS_IDLE,        // uwb told us session is created and ready
-        SS_ACTIVE,      // uwb told us session is running
-        SS_OVER         // for any reason, session is stopping
-    }
-    e_session_state_t;
 
     struct uwbSessionContext
     {
@@ -105,7 +97,7 @@ private:
 
     void TransmitBleMessage(SessionContextHandle sessionHandle, uint8_t *data, size_t length);
 
-    struct uwbSessionContext *FindSession(const struct uwbSessionContext *uwbSessionCtx);
+    struct uwbSessionContext *FindSession(const uwb_session_t *uwbSession);
     struct uwbSessionContext *FindSession(const SessionContextHandle sessionHandle);
     AliroError AddSession(SessionContextHandle sessionHandle);
     void RemoveSession(struct uwbSessionContext *sessionCtx);

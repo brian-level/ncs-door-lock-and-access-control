@@ -140,8 +140,8 @@ static inline int _ALIRO_GET_UINT16(uint8_t **pcursor, uint16_t *pval, size_t *a
     require(pcursor && pval && avail, exit);
     ret = -EOVERFLOW;
     require(*avail > 1, exit);
-    val =  ((uint16_t) * cursor++) << 8;
-    val |= ((uint32_t)*cursor++) & 0xff;
+    val =  ((uint16_t)*cursor++) << 8;
+    val |= ((uint16_t)*cursor++) & 0xff;
     *pcursor = cursor;
     *pval = val;
     *avail = *avail - 2;
@@ -214,7 +214,7 @@ static int _SetParamsFromAttributes(uwb_session_params_t *params, const uint8_t 
             ret = _ALIRO_GET_UINT32(&cursor, &params->syncCodeIndexBitmask, &avail);
             break;
         case ALIRO_ATTR_UWB_SYNC_CODE_INDEX:
-            ret = _ALIRO_GET_UINT32(&cursor, &params->syncCodeIndex, &avail);
+            ret = _ALIRO_GET_UINT8(&cursor, &params->syncCodeIndex, &avail);
             break;
         case ALIRO_ATTR_UWB_HOP_CONFIG_BITMASK:
             ret = _ALIRO_GET_UINT8(&cursor, &params->hoppingBitmask, &avail);
@@ -243,10 +243,12 @@ static int _SetParamsFromAttributes(uwb_session_params_t *params, const uint8_t 
         case ALIRO_ATTR_UWB_VENDOR_SPECIFIC:
             avail -= attrlen;
             cursor += attrlen;
+            ret = 0;
             break;
         case ALIRO_ATTR_UWB_STATUS:
             avail -= attrlen;
             cursor += attrlen;
+            ret = 0;
             break;
         default:
             LOG_ERR("Bad attr %02x", attr);
@@ -382,6 +384,33 @@ int AliroUWBparseM4(uwb_session_params_t *params, const uint8_t *inbuf, size_t i
     require(params && inbuf && inLength, exit);
 
     ret = _SetParamsFromAttributes(params, inbuf, inLength);
+exit:
+    return ret;
+}
+
+int AliroUWBbuildState(uint8_t source, uint8_t value, uint8_t *outbuf, const size_t outbufSize, size_t *bytesMade)
+{
+    int ret = -EINVAL;
+    uint8_t *cursor = outbuf;
+    uint8_t *lenptr;
+    int room = outbufSize;
+    int lenroom;
+    uint16_t state_value = ((uint16_t)source << 8) | value;
+
+    require(outbuf && outbufSize && bytesMade, exit);
+
+    _ALIRO_PUT_UINT8(&cursor, &room, ALIRO_PROTO_TYPE_NOTIFICATION);
+    _ALIRO_PUT_UINT8(&cursor, &room, ALIRO_PT_NOTIFICATION_RDR_STATUS_CHANGE);
+    lenptr = cursor;
+    _ALIRO_PUT_UINT16(&cursor, &room, 0);
+    _ALIRO_PUT_ATTR_UINT16(&cursor, &room, ALIRO_ATTR_NTF_RDR_STATUS_CHANGE_STATE, state_value);
+    lenroom = 4;
+    _ALIRO_PUT_UINT16(&lenptr, &lenroom, outbufSize - room - 4);
+
+    *bytesMade = outbufSize - room;
+
+    ret = (room > 0) ? 0 : -EOVERFLOW;
+
 exit:
     return ret;
 }

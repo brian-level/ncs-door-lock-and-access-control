@@ -136,7 +136,7 @@ typedef struct
     uint8_t pulseShapeCombo;
     uint8_t channelBitmask;
     uint32_t syncCodeIndexBitmask;
-    uint32_t syncCodeIndex;
+    uint8_t syncCodeIndex;
     uint8_t ranMultiplier;
     uint8_t hoppingBitmask;
     uint32_t hopModeKey;
@@ -145,8 +145,8 @@ typedef struct
     uint8_t slotBitmask;
     uint8_t respondersNodes;
     uint8_t macMode;
-    uint8_t stsIndex0;
-    uint8_t uwbTime0;
+    uint32_t stsIndex0;
+    uint32_t uwbTime0;
 }
 uwb_session_params_t;
 

@@ -34,12 +34,12 @@ bool UltraWideBandImpl::sThreadStarted = false;
 
 extern "C" {
     static void _UwbProtoTask(void *p1, void *p2, void *p3);
-    static int _SessionStateCallback(void *session, uint8_t state, uint8_t reason);
+    static int _SessionStateCallback(uwb_session_t *session, uint8_t state, uint8_t reason);
 }
 
 static void _UwbProtoTask(void *p1, void *p2, void *p3)
 {
-    UltraWideBandImpl *self = (UltraWideBandImpl *)p1;
+    //UltraWideBandImpl *self = (UltraWideBandImpl *)p1;
     uint32_t delay;
     int ret;
 
@@ -60,21 +60,19 @@ static void _UwbProtoTask(void *p1, void *p2, void *p3)
 
 static int _SessionStateCallback(uwb_session_t *session, uint8_t state, uint8_t reason)
 {
-#if 0
+    return UltraWideBandImpl::Instance().SessionStateChanged(session, state, reason);
+}
+
+int UltraWideBandImpl::SessionStateChanged(uwb_session_t *session, uint8_t state, uint8_t reason)
+{
     int ret = 0;
-    struct ble_ni_connection *connection;
     uint32_t session_handle;
+    uint32_t outLength;
+    struct uwbSessionContext *connection;
 
-    require(session, exit);
-    connection = _NIfindConnection(session->ble_conn_ctx);
+    connection = (struct uwbSessionContext *)session->ble_conn_ctx;
 
-    // note, the session's connection can be taken away
-    // if the BLE client closes the connection first
-    //
-    if (connection)
-    {
-        connection->session_state = state;
-    }
+    LOG_INF("++++++ Session %08X State now %d cause %d", (uint32_t)(uintptr_t)connection, state, reason);
 
     session_handle = session->session_handle;
 
@@ -82,60 +80,64 @@ static int _SessionStateCallback(uwb_session_t *session, uint8_t state, uint8_t 
     {
     case UWB_SESSION_INITIALIZED:
         LOG_DBG("Session %08X Initialized", session_handle);
-
         if (connection)
         {
             connection->session_state = SS_INIT;
         }
-
+        VerifyAndCall(mCallbacks.mRangingSessionStateChanged, connection->sessionHandle,
+                  RangingSessionState::Initialized);
         break;
 
     case UWB_SESSION_DEINITIALIZED:
         LOG_DBG("Session %08X de-Initialized", session_handle);
-
         if (connection)
         {
             connection->session_state = SS_OVER;
         }
-
         break;
 
     case UWB_SESSION_ACTIVE:
         LOG_DBG("ctx %08X   session %08X started",
-                (uint32_t)(uintptr_t)connection->conn_ctx, session_handle);
-
+                (uint32_t)(uintptr_t)session, session_handle);
         if (connection)
         {
             connection->session_state = SS_ACTIVE;
         }
-
+        VerifyAndCall(mCallbacks.mRangingSessionStateChanged, connection->sessionHandle,
+                  RangingSessionState::Ranging);
+        // transmit it
+        ret = AliroUWBbuildState(ALIRO_OP_SRC_THIS_USER_BLE_UWB, RDR_STATUS_STARTED_UNSECURE, mMessage, sizeof(mMessage), &outLength);
+        if (!ret && outLength)
+        {
+            LOG_HEXDUMP_INF(mMessage, outLength, "State change -------------------");
+            TransmitBleMessage(connection->sessionHandle, mMessage, outLength);
+        }
         break;
 
     case UWB_SESSION_IDLE:
         LOG_DBG("Session %08X Idle", session_handle);
-
         if (connection)
         {
             connection->session_state = SS_IDLE;
         }
-
+        VerifyAndCall(mCallbacks.mRangingSessionStateChanged, connection->sessionHandle,
+                  RangingSessionState::Idle);
         break;
 
     case UWB_SESSION_ERROR:
         LOG_INF("Session %08X Error %02X", session_handle, reason);
-
         if (connection)
         {
             connection->session_state = SS_OVER;
         }
-
         break;
 
     default:
         break;
     }
-#endif
-    return 0;
+
+//exit:
+    return ret;
 }
 
 AliroError UltraWideBandImpl::_Init(const Callbacks &callbacks)
@@ -193,6 +195,7 @@ exit:
 AliroError UltraWideBandImpl::_HandleBleMessage(const uint8_t *data, size_t length,
                         SessionContextHandle sessionHandle)
 {
+    AliroError err = ALIRO_INVALID_ARGUMENT;
     int ret;
     struct uwbSessionContext *connection;
     size_t outLength;
@@ -225,11 +228,24 @@ AliroError UltraWideBandImpl::_HandleBleMessage(const uint8_t *data, size_t leng
             VerifyOrReturnStatus(!ret && outLength > 0, ALIRO_ERROR_INTERNAL);
             LOG_HEXDUMP_INF(mMessage, outLength, "M3 -------------------");
             TransmitBleMessage(connection->sessionHandle, mMessage, outLength);
+            err = ALIRO_NO_ERROR;
             break;
         case ALIRO_PT_UWB_SSM4:
             VerifyOrReturnStatus(length > 4, ALIRO_INVALID_ARGUMENT);
             ret = AliroUWBparseM4(&connection->sessionParameters, data + 4, length - 4);
             VerifyOrReturnStatus(!ret, ALIRO_ERROR_INTERNAL);
+
+            // startup uwb radio
+            //
+            ret = UWBstart(
+                        UWB_DeviceType_Controller,
+                        connection->sessionIdentifier,
+                        false,
+                        (void*)connection,
+                        NULL,
+                        0);
+            VerifyOrReturnStatus(!ret, ALIRO_ERROR_INTERNAL);
+            err = ALIRO_NO_ERROR;
             break;
         case ALIRO_PT_UWB_SUSPEND_REQ:
         case ALIRO_PT_UWB_SUSPEND_RSP:
@@ -238,6 +254,7 @@ AliroError UltraWideBandImpl::_HandleBleMessage(const uint8_t *data, size_t leng
         case ALIRO_PT_UWB_SSM1:
         case ALIRO_PT_UWB_SSM3:
             LOG_ERR("Unexpected UWB Msg");
+            err = ALIRO_NO_ERROR;
             break;
         }
         break;
@@ -252,11 +269,14 @@ AliroError UltraWideBandImpl::_HandleBleMessage(const uint8_t *data, size_t leng
             switch (data[2])
             {
             case ALIRO_ATTR_NFT_EVENT_BUSY:
+                err = ALIRO_NO_ERROR;
                 break;
             case ALIRO_ATTR_NTF_EVENT_GENERAL_ERROR:
                 LOG_ERR("General Error: 0x%02x", data[3]);
+                err = ALIRO_NO_ERROR;
                 break;
             case ALIRO_ATTR_NTF_EVENT_RDR_DESC:
+                err = ALIRO_NO_ERROR;
                 break;
             }
             break;
@@ -269,16 +289,22 @@ AliroError UltraWideBandImpl::_HandleBleMessage(const uint8_t *data, size_t leng
             VerifyOrReturnStatus(ret == 0 && outLength > 0, ALIRO_ERROR_INTERNAL, LOG_ERR("Can't build M1"));
             LOG_HEXDUMP_INF(mMessage, outLength, "M1 -------------------");
             TransmitBleMessage(connection->sessionHandle, mMessage, outLength);
+            err = ALIRO_NO_ERROR;
             break;
         case ALIRO_PT_NOTIFICATION_RDR_STATUS_CHANGE:
+            err = ALIRO_NO_ERROR;
             break;
         case ALIRO_PT_NOTIFICATION_RDR_ACCESS_PROT_DONE:
+            err = ALIRO_NO_ERROR;
             break;
         case ALIRO_PT_NOTIFICATION_RDR_RKE_REQ:
+            err = ALIRO_NO_ERROR;
             break;
         case ALIRO_PT_NOTIFICATION_IAP:
+            err = ALIRO_NO_ERROR;
             break;
         case ALIRO_PT_NOTIFICATION_IAP_RKE:
+            err = ALIRO_NO_ERROR;
             break;
         default:
             return ALIRO_INVALID_ARGUMENT;
@@ -286,15 +312,22 @@ AliroError UltraWideBandImpl::_HandleBleMessage(const uint8_t *data, size_t leng
         break;
     case ALIRO_PROTO_TYPE_SUPPLEMENTARY:
         LOG_INF("BLE Msg: Supplemental %02x", data[1]);
+        err = ALIRO_NO_ERROR;
         break;
     case ALIRO_PROTO_TYPE_THIRD_PARTY:
         LOG_INF("BLE Msg: 3rdParty %02x", data[1]);
+        err = ALIRO_NO_ERROR;
         break;
     default:
+        LOG_ERR("Unknown Msg protocol %02x", data[0]);
         return ALIRO_INVALID_ARGUMENT;
     }
 
-    return ALIRO_NO_ERROR;
+    if (err.ToInt())
+    {
+        LOG_ERR("RETURN %d %s", err.ToInt(), err.ToString());
+    }
+    return err;
 }
 
 AliroError UltraWideBandImpl::AddSession(SessionContextHandle sessionHandle)
