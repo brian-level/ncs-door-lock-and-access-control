@@ -1,6 +1,7 @@
 #include "uwbproto.h"
 #include "uwbdefs.h"
 #include "uwbcanned.h"
+#include "uwbrange.h"
 #include "hbciProto.h"
 #include "uciproto.h"
 #include "ucidefs.h"
@@ -710,7 +711,6 @@ static int _uwb_initialize(
 
             if (session)
             {
-#if 0
                 int rret = UWBrangeData(session->current_antenna_sel, payload, payloadLength);
 
                 if (rret)
@@ -740,8 +740,6 @@ static int _uwb_initialize(
                 {
                     session->range_errors = 0;
                 }
-
-#endif
 
                 if (mUWB.flop_rate)
                 {
@@ -1593,12 +1591,27 @@ int UWBstop(const void *inConnectionHandle)
     {
         uwb_session_t *session;
 
-        session = _uwb_find_session_by_connection(inConnectionHandle);
-
-        if (session)
+        if (inConnectionHandle)
         {
-            session->session_state = UWB_SS_STOPPING;
-            LOG_INF("Stopping session %08X", session->session_handle);
+            session = _uwb_find_session_by_connection(inConnectionHandle);
+            if (session)
+            {
+                session->session_state = UWB_SS_STOPPING;
+                LOG_INF("Stopping session %08X", session->session_handle);
+                ret = 0;
+            }
+        }
+        else
+        {
+            for (int i = 0; i < UWB_MAX_SESSIONS; i++)
+            {
+                if (mUWB.sessions[i].session_state != UWB_SS_INACTIVE)
+                {
+                    mUWB.sessions[i].session_state = UWB_SS_STOPPING;
+                    LOG_INF("Stopping session %08X", mUWB.sessions[i].session_handle);
+                }
+            }
+
             ret = 0;
         }
     }
@@ -1633,6 +1646,8 @@ int UWBslice(uint32_t *delay)
         return 0;
     }
 
+    gotMessage = false;
+
     if (mUWB.state != UWB_IDLE)
     {
         ret = UCIprotoSlice(&gotMessage, &type, &gid, &oid, &payload, &payloadLength, delay);
@@ -1650,7 +1665,6 @@ int UWBslice(uint32_t *delay)
     }
     else
     {
-        gotMessage = false;
         ret = 0;
     }
 

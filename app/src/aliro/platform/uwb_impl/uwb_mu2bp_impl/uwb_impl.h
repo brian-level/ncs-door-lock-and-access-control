@@ -71,7 +71,7 @@ private:
     struct uwbSessionContext
     {
         uwbSessionContext(SessionContextHandle sessionContextHandle)
-            : sessionHandle(sessionContextHandle)
+            : sessionHandle(sessionContextHandle), uwbSession(NULL)
         {
             UWBinitSessionParameters(&sessionParameters);
         }
@@ -83,6 +83,8 @@ private:
         CryptoTypes::Ursk ursk;
         ProtocolVersion protocolVersion;
         uwb_session_params_t sessionParameters;
+
+        uwb_session_t *uwbSession;
 
         bool        in_use;
         uint32_t    session_id;

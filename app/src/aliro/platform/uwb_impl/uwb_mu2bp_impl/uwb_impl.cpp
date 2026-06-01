@@ -82,6 +82,7 @@ int UltraWideBandImpl::SessionStateChanged(uwb_session_t *session, uint8_t state
         LOG_DBG("Session %08X Initialized", session_handle);
         if (connection)
         {
+            connection->uwbSession = session;
             connection->session_state = SS_INIT;
         }
         VerifyAndCall(mCallbacks.mRangingSessionStateChanged, connection->sessionHandle,
@@ -418,8 +419,7 @@ AliroError UltraWideBandImpl::_ConfigureRangingSession(SessionIdentifier session
     struct uwbSessionContext *connection;
     AliroError err;
 
-    LOG_INF("%s", __FUNCTION__);
-    LOG_INF("SessionHandler: 0x%08X  Id:%08X", (uint32_t)&sessionHandle, sessionIdentifier);
+    LOG_INF("%s SessionHandler: 0x%08X  Id:%08X", __FUNCTION__, (uint32_t)&sessionHandle, sessionIdentifier);
 
     connection = FindSession(sessionHandle);
     VerifyOrReturnStatus(connection == NULL, ALIRO_INVALID_STATE, LOG_ERR("Session already exists!"));
@@ -450,6 +450,11 @@ AliroError UltraWideBandImpl::_TerminateRangingSession(SessionContextHandle sess
 
     connection = FindSession(sessionHandle);
     VerifyOrReturnStatus(connection != NULL, ALIRO_INVALID_STATE, LOG_ERR("No Session to terminate!"));
+
+    if (connection->uwbSession)
+    {
+        UWBstop(connection->uwbSession);
+    }
 
     RemoveSession(connection);
     return ALIRO_NO_ERROR;

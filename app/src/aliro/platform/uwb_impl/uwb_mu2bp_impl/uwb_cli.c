@@ -608,7 +608,7 @@ static int _CmdStart(const struct shell *shell, size_t argc, char **argv)
 
 static int _CmdStop(const struct shell *shell, size_t argc, char **argv)
 {
-    int ret = 0; //UWBstop(cli_conn ? cli_conn->conn_ctx : NULL);
+    int ret = UWBstop(NULL);
 
     return ret;
 }
