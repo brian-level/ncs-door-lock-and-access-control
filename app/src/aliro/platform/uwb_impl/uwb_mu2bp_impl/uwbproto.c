@@ -70,6 +70,9 @@ static struct
     uint32_t configDataLength;
     bool     configDataIsProfile;
 
+    uint8_t  vendorData[128];
+    uint32_t vendorDataLength;
+
     uint8_t antenna_selector[24];
     uint8_t antenna_selector_length;
 
@@ -99,6 +102,338 @@ mUWB;
 static uint16_t s_config_identifiers[] = { 0x0000, 0x0001 };
 static uint8_t  s_pulse_shape_combos[] = { 0x00, 0x11, 0x22 };
 
+const char *UWBexplainStatus(const uint8_t status)
+{
+    switch (status)
+    {
+    case UCI_STATUS_OK:
+        return "OK";
+
+    case UCI_STATUS_REJECTED:
+        return "REJECTED";
+
+    case UCI_STATUS_FAILED:
+        return "FAILED";
+
+    case UCI_STATUS_SYNTAX_ERROR:
+        return "SYNTAX_ERROR";
+
+    case UCI_STATUS_INVALID_PARAM:
+        return "INVALID_PARAM";
+
+    case UCI_STATUS_INVALID_RANGE:
+        return "INVALID_RANGE";
+
+    case UCI_STATUS_INVALID_MSG_SIZE:
+        return "INVALID_MSG_SIZE";
+
+    case UCI_STATUS_UNKNOWN_GID:
+        return "UNKNOWN_GID";
+
+    case UCI_STATUS_UNKNOWN_OID:
+        return "UNKNOWN_OID";
+
+    case UCI_STATUS_READ_ONLY:
+        return "READ_ONLY";
+
+    case UCI_STATUS_COMMAND_RETRY:
+        return "COMMAND_RETRY";
+
+    case UCI_STATUS_UNKNOWN:
+        return "UNKNOWN";
+
+    case UCI_STATUS_SESSION_NOT_EXIST:
+        return "SESSION_NOT_EXIST";
+
+    case UCI_STATUS_INVALID_PHASE_PARTICIPATION:
+        return "INVALID_PHASE_PARTICIPATION";
+
+    case UCI_STATUS_SESSSION_ACTIVE:
+        return "SESSSION_ACTIVE";
+
+    case UCI_STATUS_MAX_SESSSIONS_EXCEEDED:
+        return "MAX_SESSSIONS_EXCEEDED";
+
+    case UCI_STATUS_SESSION_NOT_CONFIGURED:
+        return "SESSION_NOT_CONFIGURED";
+
+    case UCI_STATUS_SESSIONS_ONGOING:
+        return "SESSIONS_ONGOING";
+
+    case UCI_STATUS_SESSIONS_MULTICAST_LIST_FULL:
+        return "SESSIONS_MULTICAST_LIST_FULL";
+
+    case UCI_STATUS_SESSIONS_ADDRESS_NOT_FOUND:
+        return "SESSIONS_ADDRESS_NOT_FOUND";
+
+    case UCI_STATUS_SESSIONS_ADDRESS_ALREADY_PRESENT:
+        return "SESSIONS_ADDRESS_ALREADY_PRESENT";
+
+    case UCI_STATUS_RANGING_TX_FAILED:
+        return "RANGING_TX_FAILED";
+
+    case UCI_STATUS_RANGING_RX_TIMEOUT:
+        return "RANGING_RX_TIMEOUT";
+
+    case UCI_STATUS_RANGING_RX_PHY_DEC_FAILED:
+        return "RANGING_RX_PHY_DEC_FAILED";
+
+    case UCI_STATUS_RANGING_RX_PHY_TOA_FAILED:
+        return "RANGING_RX_PHY_TOA_FAILED";
+
+    case UCI_STATUS_RANGING_RX_PHY_STS_FAILED:
+        return "RANGING_RX_PHY_STS_FAILED";
+
+    case UCI_STATUS_RANGING_RX_MAC_DEC_FAILED:
+        return "RANGING_RX_MAC_DEC_FAILED";
+
+    case UCI_STATUS_RANGING_RX_MAC_IE_DEC_FAILED:
+        return "RANGING_RX_MAC_IE_DEC_FAILED";
+
+    case UCI_STATUS_RANGING_RX_MAC_IE_MISSING:
+        return "RANGING_RX_MAC_IE_MISSING";
+
+    case UCI_STATUS_CALIBRATION_IN_PROGRESS:
+        return "CALIBRATION_IN_PROGRESS";
+
+    case UCI_STATUS_DEVICE_TEMP_REACHED_THERMAL_RUNAWAY:
+        return "DEVICE_TEMP_REACHED_THERMAL_RUNAWAY";
+
+    case UCI_STATUS_FEATURE_NOT_SUPPORTED:
+        return "FEATURE_NOT_SUPPORTED";
+
+    case UCI_STATUS_NUM_PACKET_EXCEEDS_1000_FOR_TEST_PER_RX:
+        return "NUM_PACKET_EXCEEDS_1000_FOR_TEST_PER_RX";
+
+    case UCI_STATUS_CAILBRATION_NOT_CONFIGURED:
+        return "CAILBRATION_NOT_CONFIGURED";
+
+    case UCI_STATUS_NO_SE:
+        return "NO_SE";
+
+    case UCI_STATUS_SE_RECOVERY_FAILURE:
+        return "SE_RECOVERY_FAILURE";
+
+    case UCI_STATUS_SE_RECOVERY_SUCCESS:
+        return "SE_RECOVERY_SUCCESS";
+
+    case UCI_STATUS_SE_APDU_CMD_FAIL:
+        return "SE_APDU_CMD_FAIL";
+
+    case UCI_STATUS_SE_AUTH_FAIL:
+        return "SE_AUTH_FAIL";
+
+    case UCI_STATUS_RANGING_PHY_RX_SECDEC_FAILED:
+        return "RANGING_PHY_RX_SECDEC_FAILED";
+
+    case UCI_STATUS_RANGING_PHY_RX_RSDEC_FAILED:
+        return "RANGING_PHY_RX_RSDEC_FAILED";
+
+    case UCI_STATUS_RANGING_PHY_RX_DEC_FAILED:
+        return "RANGING_PHY_RX_DEC_FAILED";
+
+    case UCI_STATUS_RANGING_PHY_RX_ERR_FAILED:
+        return "RANGING_PHY_RX_ERR_FAILED";
+
+    case UCI_STATUS_RANGING_PHY_RX_PHR_DECODE_FAILED:
+        return "RANGING_PHY_RX_PHR_DECODE_FAILED";
+
+    case UCI_STATUS_RANGING_PHY_RX_SYNC_SFD_TIMEOUT:
+        return "RANGING_PHY_RX_SYNC_SFD_TIMEOUT";
+
+    case UCI_STATUS_RANGING_PHY_RX_PHR_DATA_RATE_ERROR:
+        return "RANGING_PHY_RX_PHR_DATA_RATE_ERROR";
+
+    case UCI_STATUS_RANGING_PHY_RX_PHR_RANGING_ERROR:
+        return "RANGING_PHY_RX_PHR_RANGING_ERROR";
+
+    case UCI_STATUS_RANGING_PHY_RX_PHR_PREAMBLE_DUR_ERROR:
+        return "RANGING_PHY_RX_PHR_PREAMBLE_DUR_ERROR";
+
+    case UCI_STATUS_MAX_ACTIVE_GRANT_DURATION_EXCEEDED:
+        return "MAX_ACTIVE_GRANT_DURATION_EXCEEDED";
+
+    default:
+        return "bad-status";
+    }
+}
+
+static const char *_uwb_explain_reason(uint8_t reason)
+{
+    switch (reason)
+    {
+    case UWB_SESSION_STATE_CHANGED:
+        return "STATE_CHANGED";
+
+    case UWB_SESSION_MAX_RR_RETRY_COUNT_REACHED:
+        return "MAX_RR_RETRY_COUNT_REACHED";
+
+    case UWB_SESSION_MAX_RANGING_BLOCKS_REACHED:
+        return "MAX_RANGING_BLOCKS_REACHED";
+
+    case UWB_SESSION_SUSPENDED_DUE_TO_INBAND_SIGNAL:
+        return "SUSPENDED_DUE_TO_INBAND_SIGNAL";
+
+    case UWB_SESSION_RESUMED_DUE_TO_INBAND_SIGNAL:
+        return "RESUMED_DUE_TO_INBAND_SIGNAL";
+
+    case UWB_SESSION_STOPPED_DUE_TO_INBAND_SIGNAL:
+        return "STOPPED_DUE_TO_INBAND_SIGNAL";
+
+    case UWB_SESSION_INVALID_UL_TDOA_RANDOM_WINDOW:
+        return "INVALID_UL_TDOA_RANDOM_WINDOW";
+
+    case UWB_SESSION_MIN_RFRAMES_PER_RR_NOT_SUPPORTED:
+        return "MIN_RFRAMES_PER_RR_NOT_SUPPORTED";
+
+    case UWB_SESSION_TX_DELAY_NOT_SUPPORTED:
+        return "TX_DELAY_NOT_SUPPORTED";
+
+    case UWB_SESSION_SLOT_LENTGH_NOT_SUPPORTED:
+        return "SLOT_LENTGH_NOT_SUPPORTED";
+
+    case UWB_SESSION_SLOTS_PER_RR_NOT_SUFFICIENT:
+        return "SLOTS_PER_RR_NOT_SUFFICIENT";
+
+    case UWB_SESSION_MAC_ADDRESS_MODE_NOT_SUPPORTED:
+        return "MAC_ADDRESS_MODE_NOT_SUPPORTED";
+
+    case UWB_SESSION_INVALID_RANGING_DURATION:
+        return "INVALID_RANGING_DURATION";
+
+    case UWB_SESSION_INVALID_STS_CONFIG:
+        return "INVALID_STS_CONFIG";
+
+    case UWB_SESSION_HUS_INVALID_RFRAME_CONFIG:
+        return "HUS_INVALID_RFRAME_CONFIG";
+
+    case UWB_SESSION_HUS_NOT_ENOUGH_SLOTS:
+        return "HUS_NOT_ENOUGH_SLOTS";
+
+    case UWB_SESSION_HUS_CFP_PHASE_TOO_SHORT:
+        return "HUS_CFP_PHASE_TOO_SHORT";
+
+    case UWB_SESSION_HUS_CAP_PHASE_TOO_SHORT:
+        return "HUS_CAP_PHASE_TOO_SHORT";
+
+    case UWB_SESSION_HUS_OTHERS:
+        return "HUS_OTHERS";
+
+    case UWB_SESSION_STATUS_SESSION_KEY_NOT_FOUND:
+        return "STATUS_SESSION_KEY_NOT_FOUND";
+
+    case UWB_SESSION_STATUS_SUB_SESSION_KEY_NOT_FOUND:
+        return "STATUS_SUB_SESSION_KEY_NOT_FOUND";
+
+    case UWB_SESSION_INVALID_PREAMBLE_CODE_INDEX:
+        return "INVALID_PREAMBLE_CODE_INDEX";
+
+    case UWB_SESSION_INVALID_SFD_ID:
+        return "INVALID_SFD_ID";
+
+    case UWB_SESSION_INVALID_PSDU_DATA_RATE:
+        return "INVALID_PSDU_DATA_RATE";
+
+    case UWB_SESSION_INVALID_PHR_DATA_RATE:
+        return "INVALID_PHR_DATA_RATE";
+
+    case UWB_SESSION_INVALID_PREAMBLE_DURATION:
+        return "INVALID_PREAMBLE_DURATION";
+
+    case UWB_SESSION_INVALID_STS_LENGTH:
+        return "INVALID_STS_LENGTH";
+
+    case UWB_SESSION_INVALID_NUM_OF_STS_SEGMENTS:
+        return "INVALID_NUM_OF_STS_SEGMENTS";
+
+    case UWB_SESSION_INVALID_NUM_OF_CONTROLEES:
+        return "INVALID_NUM_OF_CONTROLEES";
+
+    case UWB_SESSION_MAX_RANGING_REPLY_TIME_EXCEEDED:
+        return "MAX_RANGING_REPLY_TIME_EXCEEDED";
+
+    case UWB_SESSION_INVALID_DST_ADDRESS_LIST:
+        return "INVALID_DST_ADDRESS_LIST";
+
+    case UWB_SESSION_INVALID_OR_NOT_FOUND_SUB_SESSION_ID:
+        return "INVALID_OR_NOT_FOUND_SUB_SESSION_ID";
+
+    case UWB_SESSION_INVALID_RESULT_REPORT_CONFIG:
+        return "INVALID_RESULT_REPORT_CONFIG";
+
+    case UWB_SESSION_INVALID_RANGING_ROUND_CONTROL_CONFIG:
+        return "INVALID_RANGING_ROUND_CONTROL_CONFIG";
+
+    case UWB_SESSION_INVALID_RANGING_ROUND_USAGE:
+        return "INVALID_RANGING_ROUND_USAGE";
+
+    case UWB_SESSION_INVALID_MULTI_NODE_MODE:
+        return "INVALID_MULTI_NODE_MODE";
+
+    case UWB_SESSION_RDS_FETCH_FAILURE:
+        return "RDS_FETCH_FAILURE";
+
+    case UWB_SESSION_DOES_NOT_EXIST:
+        return "DOES_NOT_EXIST";
+
+    case UWB_SESSION_RANGING_DURATION_MISMATCH:
+        return "RANGING_DURATION_MISMATCH";
+
+    case UWB_SESSION_INVALID_OFFSET_TIME:
+        return "INVALID_OFFSET_TIME";
+
+    case UWB_SESSION_LOST:
+        return "LOST";
+
+    case UWB_SESSION_DT_ANCHOR_RANGING_ROUNDS_NOT_CONFIGURED:
+        return "DT_ANCHOR_RANGING_ROUNDS_NOT_CONFIGURED";
+
+    case UWB_SESSION_DT_TAG_RANGING_ROUNDS_NOT_CONFIGURED:
+        return "DT_TAG_RANGING_ROUNDS_NOT_CONFIGURED";
+
+    case UWB_SESSION_ERROR_INVALID_ANTENNA_CFG:
+        return "ERROR_INVALID_ANTENNA_CFG";
+
+    case UWB_SESSION_BASEBAND_ERROR:
+        return "BASEBAND_ERROR";
+
+    case UWB_SESSION_TESTMODE_TERMINATED:
+        return "TESTMODE_TERMINATED";
+
+    case UWB_SESSION_INVALID_DATA_TRANSFER_MODE:
+        return "INVALID_DATA_TRANSFER_MODE";
+
+    case UWB_SESSION_INVALID_MAC_CFG:
+        return "INVALID_MAC_CFG";
+
+    case UWB_SESSION_INVALID_ADAPTIVE_HOPPING_THRESHOLD:
+        return "INVALID_ADAPTIVE_HOPPING_THRESHOLD";
+
+    case UWB_SESSION_UNSUPPORTED_RANGING_LIMIT:
+        return "UNSUPPORTED_RANGING_LIMIT";
+
+    case UWB_SESSION_RNG_INVALID_DEVICE_ROLE:
+        return "RNG_INVALID_DEVICE_ROLE";
+
+    case UWB_SESSION_INVALID_ANTENNA_PAIR_SWAP_CONFIGURATION:
+        return "INVALID_ANTENNA_PAIR_SWAP_CONFIGURATION";
+
+    case UWB_SESSION_URSK_EXPIRED:
+        return "URSK_EXPIRED";
+
+    case UWB_SESSION_TERMINATION_ON_MAX_STS:
+        return "TERMINATION_ON_MAX_STS";
+
+    case UWB_SESSION_RADAR_FCC_LIMIT_REACHED:
+        return "RADAR_FCC_LIMIT_REACHED";
+
+    case UWB_SESSION_CSA_INVALID_CFG:
+        return "CSA_INVALID_CFG";
+
+    default:
+        return "Bad Reason Code";
+    }
+}
 
 static int __uwb_parse_device_info(const uint8_t *inData, const int inLength)
 {
@@ -451,10 +786,16 @@ static int _uwb_session_count(void)
 static int _uwb_set_session_state(uwb_session_t *session, const uint8_t sess_state, const uint8_t sess_reason)
 {
     int ret = -1;
+    const char *reason_str = "";
 
     require(session, exit);
 
     session->uci_session_state = sess_state;
+
+    if (sess_reason)
+    {
+        reason_str = _uwb_explain_reason(sess_reason);
+    }
 
     switch (sess_state)
     {
@@ -486,20 +827,20 @@ static int _uwb_set_session_state(uwb_session_t *session, const uint8_t sess_sta
         else if (session->session_state == UWB_SS_STOPPING)
         {
             session->session_state = UWB_SS_STOPPED;
-            LOG_INF("Session %08X idle, stopped", session->session_handle);
+            LOG_INF("Session %08X idle, stopped %s", session->session_handle, reason_str);
         }
         else
         {
             // An active session is idled, what to do?
             session->session_state = UWB_SS_IDLE;
-            LOG_INF("Session %08X idle", session->session_handle);
+            LOG_INF("Session %08X idle %s", session->session_handle, reason_str);
         }
 
         break;
 
     case UWB_SESSION_ERROR:
         session->session_state = UWB_SS_STOPPING;;
-        LOG_DBG("Session %08X error", session->session_handle);
+        LOG_DBG("Session %08X error %s", session->session_handle, reason_str);
         break;
 
     default:
@@ -1105,7 +1446,7 @@ static int _uwb_initialize(
 
             if (mUWB.configDataLength != 0)
             {
-                // if mobile provideds config dats, no need to set all config
+                // if mobile provideds config data, no need to set all config
                 //
                 if (!mUWB.configDataIsProfile)
                 {
@@ -1166,6 +1507,18 @@ static int _uwb_initialize(
             mUWB.command_size[mUWB.command_set_count] = UWB_SESSION_SET_DEBUG_CONFIG_SIZE;
             mUWB.commands[mUWB.command_set_count++] = _uwb_add_session_handle(session, UWB_SESSION_SET_DEBUG_CONFIG);
 #endif
+
+            if (mUWB.vendorDataLength != 0)
+            {
+                // if vendor data provided, send it
+                //
+                mUWB.command_size[mUWB.command_set_count] = mUWB.vendorDataLength;
+                mUWB.commands[mUWB.command_set_count++] = _uwb_add_session_handle(session, mUWB.vendorData);
+            }
+
+            // set canned/common config
+            mUWB.command_size[mUWB.command_set_count] = UWB_SESSION_SET_XAPP_CONFIG_SIZE;
+            mUWB.commands[mUWB.command_set_count++] = _uwb_add_session_handle(session, UWB_SESSION_SET_XAPP_CONFIG);
             mUWB.command_size[mUWB.command_set_count] = UWB_RANGE_START_SIZE;
             mUWB.commands[mUWB.command_set_count++] = _uwb_add_session_handle(session, UWB_RANGE_START);
             mUWB.command_set_state = 0;
@@ -1186,18 +1539,6 @@ static int _uwb_initialize(
                 }
 
                 session->current_antenna_sel = session->requested_antenna_sel;
-
-#if 0
-
-                // when we change antennas, any filtering of range data is probably out of date
-                // enough to warrant a reset if flop rate is > 3 or so.
-                //
-                if (mUWB.flop_rate > 3)
-                {
-                    UWBrangeResetFilter(session->session_handle, session->current_antenna_sel);
-                }
-
-#endif
             }
 
             UWB_NEXT_STATE(UWB_IS_READY);
@@ -1452,43 +1793,22 @@ static int _uwb_initialize(
             {
                 // UCI error, just announce it and let response timeout kill session
                 //
-                switch (status)
+                const char *status_str = UWBexplainStatus(payload[0]);
+
+                LOG_ERR("UCI Status: %s (state %d)", status_str, mUWB.next_init_state);
+
+                if (gid == UCI_GID_SESSION_MANAGE && oid == UCI_MSG_SESSION_SET_APP_CONFIG && (payloadLength >= 4))
                 {
-                case UCI_STATUS_REJECTED:
-                    LOG_ERR("UCI rejected (state %d)", mUWB.next_init_state);
-                    break;
+                    int paydex = 2;
+                    int num_parms = payload[1];
+                    int parm_num = 1;
 
-                case UCI_STATUS_FAILED:
-                    LOG_ERR("UCI failed (state %d)", mUWB.next_init_state);
-                    break;
-
-                case UCI_STATUS_SYNTAX_ERROR:
-                    LOG_ERR("UCI syntax (state %d)", mUWB.next_init_state);
-                    break;
-
-                case UCI_STATUS_INVALID_PARAM:
-                    LOG_ERR("UCI invalid param (state %d)", mUWB.next_init_state);
-                    break;
-
-                case UCI_STATUS_SESSSION_NOT_EXIST:
-                    LOG_ERR("No existing session for command (state %d)", mUWB.next_init_state);
-                    break;
-
-                case UCI_STATUS_SESSSION_ACTIVE:
-                    LOG_ERR("Session already active (state %d)", mUWB.next_init_state);
-                    break;
-
-                case UCI_STATUS_MAX_SESSSIONS_EXCEEDED:
-                    LOG_ERR("To many existing sessions (state %d)", mUWB.next_init_state);
-                    break;
-
-                case UCI_STATUS_SESSION_NOT_CONFIGURED:
-                    LOG_ERR("Session not configured (state %d)", mUWB.next_init_state);
-                    break;
-
-                default:
-                    LOG_ERR("Status %02X in response (state %d)", mUWB.next_init_state, status);
-                    break;
+                    while (parm_num <= num_parms && paydex < payloadLength)
+                    {
+                        LOG_ERR("Parm %d: 0x%02X: %s", parm_num, payload[paydex], UWBexplainStatus(payload[paydex + 1]));
+                        paydex += 2;
+                        parm_num++;
+                    }
                 }
             }
 
@@ -1557,8 +1877,10 @@ int UWBstart(
     const uint32_t inSessionId,
     const bool inConfigDataIsProfile,
     const void *inConnectionHandle,
-    const uint8_t *inConfigData,
-    const int inConfigDataLength)
+    const uint8_t *inAppConfigData,
+    const int inAppConfigDataLength,
+    const uint8_t *inVendorConfigData,
+    const int inVendorConfigDataLength)
 {
     uwb_session_t *session;
     int ret = -EINVAL;
@@ -1575,11 +1897,11 @@ int UWBstart(
         mUWB.is_responder = true;
     }
 
-    if (inConfigData && inConfigDataLength)
+    if (inAppConfigData && inAppConfigDataLength)
     {
-        require(inConfigDataLength < sizeof(mUWB.configData), exit);
-        memcpy(mUWB.configData, inConfigData, inConfigDataLength);
-        mUWB.configDataLength = inConfigDataLength;
+        require(inAppConfigDataLength < sizeof(mUWB.configData), exit);
+        memcpy(mUWB.configData, inAppConfigData, inAppConfigDataLength);
+        mUWB.configDataLength = inAppConfigDataLength;
         mUWB.configDataIsProfile = inConfigDataIsProfile;
         LOG_INF("Starting NI Session with %s",
                 inConfigDataIsProfile ? "Profile" : "App Data");
@@ -1589,6 +1911,17 @@ int UWBstart(
         mUWB.configDataLength = 0;
         mUWB.configDataIsProfile = false;
         LOG_INF("Starting UWB Session");
+    }
+
+    if (inVendorConfigData && inVendorConfigDataLength)
+    {
+        require(inVendorConfigDataLength < sizeof(mUWB.vendorData), exit);
+        memcpy(mUWB.vendorData, inVendorConfigData, inVendorConfigDataLength);
+        mUWB.vendorDataLength = inVendorConfigDataLength;
+    }
+    else
+    {
+        mUWB.vendorDataLength = 0;
     }
 
     TimeSignalApplicationEvent();
@@ -1608,6 +1941,7 @@ int UWBstop(const void *inConnectionHandle)
         if (inConnectionHandle)
         {
             session = _uwb_find_session_by_connection(inConnectionHandle);
+
             if (session)
             {
                 session->session_state = UWB_SS_STOPPING;
@@ -1755,21 +2089,23 @@ void UWBgetConfigParameters(uwb_config_params_t *config)
     require(config, exit);
 
     config->config_identifiers = s_config_identifiers;
-    config->num_config_identifiers = sizeof(s_config_identifiers)/sizeof(s_config_identifiers[0]);
+    config->num_config_identifiers = sizeof(s_config_identifiers) / sizeof(s_config_identifiers[0]);
     config->pulse_shape_combos = s_pulse_shape_combos;
     config->num_pulse_shape_combos = sizeof(s_pulse_shape_combos) / sizeof(s_pulse_shape_combos[0]);
 
     config->channel = UWB_CHANNEL_NUMBER;
-    if (UWB_CHANNEL_NUMBER == 5)
+
+    if (config->channel == 5)
     {
-        config->channelBitmask |= (1 << 0);
+        config->channelBitmask = (1 << 0);
     }
     else if (UWB_CHANNEL_NUMBER == 9)
     {
-        config->channelBitmask |= (1 << 1);
+        config->channelBitmask = (1 << 1);
     }
     else
     {
+        config->channelBitmask = 0;
         LOG_ERR("Not supporting non 5/9 channel");
     }
 

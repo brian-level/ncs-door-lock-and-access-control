@@ -2,6 +2,8 @@
 
 #include "uwbproto.h"
 #include "uwbdefs.h"
+#include "ucidefs.h"
+#include "uciextdefs.h"
 #include "aliro_proto.h"
 #include "assertmacros.h"
 
@@ -102,6 +104,7 @@ static int _ALIRO_PUT_ATTRS_UINT8(uint8_t **cursor, int *room, uint8_t attribute
 {
     _ALIRO_PUT_UINT8(cursor, room, attribute);
     _ALIRO_PUT_UINT8(cursor, room, sizeof(uint8_t) * num_values);
+
     for (int i = 0; i < num_values; i++)
     {
         _ALIRO_PUT_UINT8(cursor, room, values[i]);
@@ -124,6 +127,7 @@ static int _ALIRO_PUT_ATTRS_UINT16(uint8_t **cursor, int *room, uint8_t attribut
 {
     _ALIRO_PUT_UINT8(cursor, room, attribute);
     _ALIRO_PUT_UINT8(cursor, room, sizeof(uint16_t) * num_values);
+
     for (int i = 0; i < num_values; i++)
     {
         _ALIRO_PUT_UINT16(cursor, room, values[i]);
@@ -168,8 +172,8 @@ static inline int _ALIRO_GET_UINT16(uint8_t **pcursor, uint16_t *pval, size_t *a
     require(pcursor && pval && avail, exit);
     ret = -EOVERFLOW;
     require(*avail > 1, exit);
-    val =  ((uint16_t)*cursor++) << 8;
-    val |= ((uint16_t)*cursor++) & 0xff;
+    val = ((uint16_t) * cursor++) << 8;
+    val |= ((uint16_t) * cursor++) & 0xff;
     *pcursor = cursor;
     *pval = val;
     *avail = *avail - 2;
@@ -187,10 +191,10 @@ static inline int _ALIRO_GET_UINT32(uint8_t **pcursor, uint32_t *pval, size_t *a
     require(pcursor && pval && avail, exit);
     ret = -EOVERFLOW;
     require(*avail > 3, exit);
-    val =  ((uint32_t)*cursor++) << 24;
-    val |= ((uint32_t)*cursor++) << 16;
-    val |= ((uint32_t)*cursor++) << 8;
-    val |= ((uint32_t)*cursor++) & 0xff;
+    val = ((uint32_t) * cursor++) << 24;
+    val |= ((uint32_t) * cursor++) << 16;
+    val |= ((uint32_t) * cursor++) << 8;
+    val |= ((uint32_t) * cursor++) & 0xff;
     *pcursor = cursor;
     *pval = val;
     *avail = *avail - 4;
@@ -217,79 +221,138 @@ static int _SetParamsFromAttributes(uwb_session_params_t *params, const uint8_t 
         attrlen  = *cursor++;
         avail -= 2;
 
-        LOG_INF("attr %d len %d", attr, attrlen);
+        if (1)
+        {
+            size_t xavail = avail;
+            uint8_t *valpos = cursor;
+            uint8_t u8val = 0;
+            uint16_t u16val = 0;
+            uint32_t attrval = 0;
+
+            switch (attrlen)
+            {
+            case 1:
+                _ALIRO_GET_UINT8(&valpos, &u8val, &xavail);
+                attrval = u8val;
+                break;
+
+            case 2:
+                _ALIRO_GET_UINT16(&valpos, &u16val, &xavail);
+                attrval = u16val;
+                break;
+
+            case 4:
+                _ALIRO_GET_UINT32(&valpos, &attrval, &xavail);
+                break;
+
+            default:
+                attrval = 0;
+                break;
+            }
+
+            LOG_INF("attr %d len %d  val x%08x", attr, attrlen, attrval);
+        }
 
         switch (attr)
         {
         case ALIRO_ATTR_UWB_CONFIG_ID:
             ret = _ALIRO_GET_UINT16(&cursor, &params->configIdentifier, &avail);
             break;
+
         case ALIRO_ATTR_UWB_PULSE_SHAPE_COMBO:
             ret = _ALIRO_GET_UINT8(&cursor, &params->pulseShapeCombo, &avail);
             break;
+
         case ALIRO_ATTR_UWB_SESSION_ID:
             avail -= attrlen;
             cursor += attrlen;
             ret = 0;
             break;
+
         case ALIRO_ATTR_UWB_CHANNEL_BITMASK:
             ret = _ALIRO_GET_UINT8(&cursor, &params->channelBitmask, &avail);
             break;
+
         case ALIRO_ATTR_UWB_RAN_MULTIPLIER:
             ret = _ALIRO_GET_UINT8(&cursor, &params->ranMultiplier, &avail);
             break;
+
         case ALIRO_ATTR_UWB_SLOT_BITMASK:
             ret = _ALIRO_GET_UINT8(&cursor, &params->slotBitmask, &avail);
             break;
+
         case ALIRO_ATTR_UWB_SYNC_CODE_INDEX_MASK:
             ret = _ALIRO_GET_UINT32(&cursor, &params->syncCodeIndexBitmask, &avail);
             break;
+
         case ALIRO_ATTR_UWB_SYNC_CODE_INDEX:
             ret = _ALIRO_GET_UINT8(&cursor, &params->syncCodeIndex, &avail);
             break;
+
         case ALIRO_ATTR_UWB_HOP_CONFIG_BITMASK:
             ret = _ALIRO_GET_UINT8(&cursor, &params->hoppingBitmask, &avail);
             break;
+
         case ALIRO_ATTR_UWB_CHAPS_PER_SLOT:
             ret = _ALIRO_GET_UINT8(&cursor, &params->chapsPerSlot, &avail);
             break;
+
         case ALIRO_ATTR_UWB_NUM_RESPONDER_NODES:
             ret = _ALIRO_GET_UINT8(&cursor, &params->respondersNodes, &avail);
             break;
+
         case ALIRO_ATTR_UWB_SLOTS_PER_ROUND:
             ret = _ALIRO_GET_UINT8(&cursor, &params->slotsPerRound, &avail);
             break;
+
         case ALIRO_ATTR_UWB_STS_INDEX_0:
             ret = _ALIRO_GET_UINT32(&cursor, &params->stsIndex0, &avail);
             break;
+
         case ALIRO_ATTR_UWB_TIME_0:
             ret = _ALIRO_GET_UINT32(&cursor, &params->uwbTime0, &avail);
             break;
+
         case ALIRO_ATTR_UWB_HOP_KEY_MODE:
             ret = _ALIRO_GET_UINT32(&cursor, &params->hopModeKey, &avail);
             break;
+
         case ALIRO_ATTR_UWB_MAC_MODE:
             ret = _ALIRO_GET_UINT8(&cursor, &params->macMode, &avail);
             break;
+
         case ALIRO_ATTR_UWB_VENDOR_SPECIFIC:
             avail -= attrlen;
             cursor += attrlen;
             ret = 0;
             break;
+
         case ALIRO_ATTR_UWB_STATUS:
             avail -= attrlen;
             cursor += attrlen;
             ret = 0;
             break;
+
         default:
             LOG_ERR("Bad attr %02x", attr);
             ret = -EINVAL;
             break;
         }
     }
+
 exit:
     return ret;
 }
+
+// [b7 b6 b5] : bitmask of hopping modes the device offers to use in the ranging session
+//      100 - No Hopping
+//      010 - Continuous Hopping
+//      001 - Adaptive Hopping
+
+// [b4 b3 b2 b1 b0] : bit mask of hopping sequences the device offers to use in the ranging session
+//      b4=1 is always set because of the default hopping sequence. Support for it is mandatory.
+//      b3=1 is set when the optional AES based hopping sequence is supported.
+// Rest of the bits are reserved for future
 
 static uint8_t AliroUWBhoppingBitmaskToSR150(uint8_t bits)
 {
@@ -297,14 +360,19 @@ static uint8_t AliroUWBhoppingBitmaskToSR150(uint8_t bits)
     {
     case ALIRO_HOPPING_CONFIG_NO_HOPPING:
         return UWB_CCC_HopMode_Disable;
+
     case ALIRO_HOPPING_CONFIG_CONTINUOUS_HOPPING_MODULO:
         return UWB_CCC_HopMode_Cont_def;
+
     case ALIRO_HOPPING_CONFIG_CONTINUOUS_HOPPING_AES:
         return UWB_CCC_HopMode_Cont_AES;
+
     case ALIRO_HOPPING_CONFIG_ADAPTIVE_HOPPING_MODULO:
         return UWB_CCC_HopMode_Adapt_def;
+
     case ALIRO_HOPPING_CONFIG_ADAPTIVE_HOPPING_AES:
         return UWB_CCC_HopMode_Adapt_AES;
+
     default:
         return 0xFF;
     }
@@ -403,6 +471,8 @@ int AliroUWBparseM2(uwb_config_params_t *config, uwb_session_params_t *params, c
     //
     // config identifier
     //
+    ret = -EINVAL;
+
     for (i = 0; i < config->num_config_identifiers; i++)
     {
         if (config->config_identifiers[i] == params->configIdentifier)
@@ -415,6 +485,8 @@ int AliroUWBparseM2(uwb_config_params_t *config, uwb_session_params_t *params, c
 
     // pulse shape combo
     //
+    ret = -EINVAL;
+
     for (i = 0; i < config->num_pulse_shape_combos; i++)
     {
         if (config->pulse_shape_combos[i] == params->pulseShapeCombo)
@@ -427,13 +499,60 @@ int AliroUWBparseM2(uwb_config_params_t *config, uwb_session_params_t *params, c
 
     // channel bitmask
     //
+    ret = -EINVAL;
     require((params->channelBitmask & config->channelBitmask) == config->channelBitmask, exit);
 
     // RAN multiplier must be >= our lowest value we put in M1
     //
+    ret = -EINVAL;
     require(params->ranMultiplier >= config->ranMultiplier, exit);
 
+    // SLOT bitmask
 
+    // Hopping bitmask.  We select the mode that matches first from upper to lower bits
+    //
+
+    // select matching mode (bits 7,6,5)
+    for (i = 7; i > 4; i--)
+    {
+        if ((params->hoppingBitmask & (1 << i)) && (config->hoppingBitmask & (1 << i)))
+        {
+            break;
+        }
+    }
+
+    if (i <= 4)
+    {
+        ret = -EINVAL;
+        LOG_ERR("No overlap in hopping mode: %02x, config=%02x", params->hoppingBitmask, config->hoppingBitmask);
+    }
+    else
+    {
+        params->hoppingBitmask &= ~0xE0;
+        params->hoppingBitmask |= (1 << i);
+    }
+
+    // select matching sequence (bits 4,3)
+    for (i = 4; i > 2; i--)
+    {
+        if ((params->hoppingBitmask & (1 << i)) && (config->hoppingBitmask & (1 << i)))
+        {
+            break;
+        }
+    }
+
+    if (i <= 2)
+    {
+        ret = -EINVAL;
+        LOG_ERR("No overlap in hopping sequence: %02x, config=%02x", params->hoppingBitmask, config->hoppingBitmask);
+    }
+    else
+    {
+        params->hoppingBitmask &= ~0x1F;
+        params->hoppingBitmask |= (1 << i);
+    }
+
+    ret = 0;
 exit:
     return ret;
 }
@@ -535,13 +654,18 @@ exit:
 }
 
 
-int AliroUWBbuildAppConfiguration(uwb_session_params_t *params, uint8_t *inBuffer, size_t inBufferSize, size_t *outBufferCount)
+int AliroUWBbuildAppConfiguration(
+    uwb_session_params_t *params,
+    uint8_t *inBuffer,
+    size_t inBufferSize,
+    size_t *outBufferCount)
 {
     int ret = -EINVAL;
     uint8_t *cursor = inBuffer;
     uint8_t *lenpos;
     uint8_t *parmcountpos;
     int room = inBufferSize;
+    int lenroom;
     int parmcount = 0;
     int datalen;
 
@@ -550,179 +674,260 @@ int AliroUWBbuildAppConfiguration(uwb_session_params_t *params, uint8_t *inBuffe
     /* build an app config to use
      */
     // UCI header
-    ret  = _UWB_PUT_UINT8( &cursor, &room, UCI_MTS_CMD | UCI_GID_SESSION_MANAGE );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, UCI_MSG_SESSION_SET_APP_CONFIG );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, 0x00 );
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_MTS_CMD | UCI_GID_SESSION_MANAGE);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, UCI_MSG_SESSION_SET_APP_CONFIG);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, 0x00);
     lenpos = cursor;
-    ret |= _UWB_PUT_UINT8( &cursor, &room, 0 );
-    require_noerr( ret, exit );
+    ret |= _UWB_PUT_UINT8(&cursor, &room, 0);
+    require_noerr(ret, exit);
 
     // 4 byte session handle goes here
-    ret  = _UWB_PUT_UINT32( &cursor, &room, 0x00 );
+    ret  = _UWB_PUT_UINT32(&cursor, &room, 0x00);
 
     // number of parameters
     parmcountpos = cursor;
-    ret |= _UWB_PUT_UINT8( &cursor, &room, parmcount );
-    require_noerr( ret, exit );
+    ret |= _UWB_PUT_UINT8(&cursor, &room, parmcount);
+    require_noerr(ret, exit);
 
-    ret  = _UWB_PUT_UINT8( &cursor, &room, UCI_PARAM_ID_UWB_CONFIG_ID );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, 2 );
-    ret |= _UWB_PUT_UINT16( &cursor, &room, params->configIdentifier );
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_UWB_CONFIG_ID);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, 2);
+    ret |= _UWB_PUT_UINT16(&cursor, &room, params->configIdentifier);
     parmcount++;
-    require_noerr( ret, exit );
+    require_noerr(ret, exit);
 
-    ret  = _UWB_PUT_UINT8( &cursor, &room, UCI_PARAM_ID_PULSESHAPE_COMBO );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, 1 );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, params->pulseShapeCombo );
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_PULSESHAPE_COMBO);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, 1);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, params->pulseShapeCombo);
     parmcount++;
-    require_noerr( ret, exit );
-
+    require_noerr(ret, exit);
+#if 0
     uint8_t hopping_mode = AliroUWBhoppingBitmaskToSR150(params->hoppingBitmask);
-    ret  = _UWB_PUT_UINT8( &cursor, &room, UCI_PARAM_ID_HOPPING_MODE );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, 1 );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, hopping_mode );
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_HOPPING_MODE);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, 1);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, hopping_mode);
     parmcount++;
-    require_noerr( ret, exit );
+    require_noerr(ret, exit);
+#endif
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_RANGING_DURATION);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_LEN_RANGING_DURATION);
+    ret |= _UWB_PUT_UINT32(&cursor, &room, params->ranMultiplier * 96);
+    parmcount++;
+    require_noerr(ret, exit);
 
-    ret  = _UWB_PUT_UINT8( &cursor, &room, UCI_PARAM_ID_RANGING_DURATION );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, UCI_PARAM_LEN_RANGING_DURATION );
-    ret |= _UWB_PUT_UINT32( &cursor, &room, params->ranMultiplier * 96 );
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_SLOT_DURATION);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_LEN_SLOT_DURATION);
+    ret |= _UWB_PUT_UINT16(&cursor, &room, params->chapsPerSlot * 1200 / 3);
     parmcount++;
-    require_noerr( ret, exit );
+    require_noerr(ret, exit);
 
-    ret  = _UWB_PUT_UINT8( &cursor, &room, UCI_PARAM_ID_SLOT_DURATION );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, UCI_PARAM_LEN_SLOT_DURATION );
-    ret |= _UWB_PUT_UINT16( &cursor, &room, params->chapsPerSlot * 1200 / 3 );
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_SLOTS_PER_RR);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_LEN_SLOTS_PER_RR);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, params->slotsPerRound);
     parmcount++;
-    require_noerr( ret, exit );
+    require_noerr(ret, exit);
 
-    ret  = _UWB_PUT_UINT8( &cursor, &room, UCI_PARAM_ID_SLOTS_PER_RR );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, UCI_PARAM_LEN_SLOTS_PER_RR );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, params->slotsPerRound );
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_STS_INDEX);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_LEN_STS_INDEX);
+    ret |= _UWB_PUT_UINT32(&cursor, &room, params->stsIndex0);
     parmcount++;
-    require_noerr( ret, exit );
-
-    ret  = _UWB_PUT_UINT8( &cursor, &room, UCI_PARAM_ID_STS_INDEX );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, UCI_PARAM_LEN_STS_INDEX );
-    ret |= _UWB_PUT_UINT32( &cursor, &room, params->stsIndex0 );
-    parmcount++;
-    require_noerr( ret, exit );
+    require_noerr(ret, exit);
 #if 1
-    ret  = _UWB_PUT_UINT8( &cursor, &room, UCI_PARAM_ID_HOP_MODE_KEY );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, 4 );
-    ret |= _UWB_PUT_UINT32( &cursor, &room, params->hopModeKey );
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_HOP_MODE_KEY);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, 4);
+    ret |= _UWB_PUT_UINT32(&cursor, &room, params->hopModeKey);
     parmcount++;
-    require_noerr( ret, exit );
+    require_noerr(ret, exit);
 #endif
 
-    ret  = _UWB_PUT_UINT8( &cursor, &room, UCI_PARAM_ID_ALIRO_MAC_MODE );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, 1 );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, params->macMode );
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_ALIRO_MAC_MODE);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, 1);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, params->macMode);
     parmcount++;
-    require_noerr( ret, exit );
+    require_noerr(ret, exit);
 
 #if 0
-    ret  = _UWB_PUT_UINT8( &cursor, &room, UCI_PARAM_ID_STATIC_STS_IV );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, UCI_PARAM_LEN_STATIC_STS_IV );
-    ret |= _UWB_PUT_DATA( &cursor, &room, (uint8_t*)&params->stsIndex0, UCI_PARAM_LEN_STATIC_STS_IV );
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_STATIC_STS_IV);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_LEN_STATIC_STS_IV);
+    ret |= _UWB_PUT_DATA(&cursor, &room, (uint8_t*)&params->stsIndex0, UCI_PARAM_LEN_STATIC_STS_IV);
     parmcount++;
-    require_noerr( ret, exit );
+    require_noerr(ret, exit);
 #endif
     uint8_t vendor_id[] = { 8, 7 };
-    ret  = _UWB_PUT_UINT8( &cursor, &room, UCI_PARAM_ID_VENDOR_ID );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, UCI_PARAM_LEN_VENDOR_ID );
-    ret |= _UWB_PUT_DATA( &cursor, &room, vendor_id, UCI_PARAM_LEN_VENDOR_ID );
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_VENDOR_ID);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_LEN_VENDOR_ID);
+    ret |= _UWB_PUT_DATA(&cursor, &room, vendor_id, UCI_PARAM_LEN_VENDOR_ID);
     parmcount++;
-    require_noerr( ret, exit );
+    require_noerr(ret, exit);
 
-    ret  = _UWB_PUT_UINT8( &cursor, &room, UCI_PARAM_ID_PREAMBLE_CODE_INDEX );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, UCI_PARAM_LEN_PREAMBLE_CODE_INDEX );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, params->syncCodeIndex );
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_PREAMBLE_CODE_INDEX);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_LEN_PREAMBLE_CODE_INDEX);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, params->syncCodeIndex);
     parmcount++;
-    require_noerr( ret, exit );
+    require_noerr(ret, exit);
 
-    ret  = _UWB_PUT_UINT8( &cursor, &room, UCI_PARAM_ID_CHANNEL_NUMBER );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, UCI_PARAM_LEN_CHANNEL_NUMBER );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, params->channel );
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_CHANNEL_NUMBER);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_LEN_CHANNEL_NUMBER);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, params->channel);
     parmcount++;
-    require_noerr( ret, exit );
+    require_noerr(ret, exit);
 
-    ret  = _UWB_PUT_UINT8( &cursor, &room, UCI_PARAM_ID_NO_OF_CONTROLEES );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, UCI_PARAM_LEN_NO_OF_CONTROLEES );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, 1 );
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_NO_OF_CONTROLEES);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_LEN_NO_OF_CONTROLEES);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, 1);
     parmcount++;
-    require_noerr( ret, exit );
+    require_noerr(ret, exit);
 
-    ret  = _UWB_PUT_UINT8( &cursor, &room, UCI_PARAM_ID_DST_MAC_ADDRESS );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, UCI_PARAM_LEN_DEST_MAC_ADDRESS );
-    ret |= _UWB_PUT_DATA( &cursor, &room, params->dst_mac_addr, UCI_PARAM_LEN_DEST_MAC_ADDRESS );
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_DST_MAC_ADDRESS);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_LEN_DEST_MAC_ADDRESS);
+    ret |= _UWB_PUT_DATA(&cursor, &room, params->dst_mac_addr, UCI_PARAM_LEN_DEST_MAC_ADDRESS);
     parmcount++;
-    require_noerr( ret, exit );
+    require_noerr(ret, exit);
 
-    ret  = _UWB_PUT_UINT8( &cursor, &room, UCI_PARAM_ID_DEVICE_ROLE );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, UCI_PARAM_LEN_DEVICE_ROLE );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, params->device_role );
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_DEVICE_ROLE);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_LEN_DEVICE_ROLE);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, params->device_role);
     parmcount++;
-    require_noerr( ret, exit );
+    require_noerr(ret, exit);
 
-    ret  = _UWB_PUT_UINT8( &cursor, &room, UCI_PARAM_ID_MULTI_NODE_MODE );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, UCI_PARAM_LEN_MULTI_NODE_MODE );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, 0 );
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_MULTI_NODE_MODE);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_LEN_MULTI_NODE_MODE);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, 0);
     parmcount++;
-    require_noerr( ret, exit );
+    require_noerr(ret, exit);
 
-    ret  = _UWB_PUT_UINT8( &cursor, &room, UCI_PARAM_ID_MAC_ADDRESS_MODE );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, 1 /*UCI_PARAM_LEN_MAC_ADDRESS_MODE*/ );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, 0 );
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_MAC_ADDRESS_MODE);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, 1 /*UCI_PARAM_LEN_MAC_ADDRESS_MODE*/);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, 0);
     parmcount++;
-    require_noerr( ret, exit );
+    require_noerr(ret, exit);
 
-    ret  = _UWB_PUT_UINT8( &cursor, &room, UCI_PARAM_ID_SCHEDULED_MODE );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, 1 /*UCI_PARAM_LEN_SCHEDULED_MODE*/ );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, 1 );
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_SCHEDULED_MODE);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, 1 /*UCI_PARAM_LEN_SCHEDULED_MODE*/);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, 1);
     parmcount++;
-    require_noerr( ret, exit );
+    require_noerr(ret, exit);
 
-    ret  = _UWB_PUT_UINT8( &cursor, &room, UCI_PARAM_ID_DEVICE_MAC_ADDRESS );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, UCI_PARAM_LEN_DEVICE_MAC_ADDRESS );
-    ret |= _UWB_PUT_DATA( &cursor, &room, params->our_mac_addr, UCI_PARAM_LEN_DEVICE_MAC_ADDRESS );
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_DEVICE_MAC_ADDRESS);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_LEN_DEVICE_MAC_ADDRESS);
+    ret |= _UWB_PUT_DATA(&cursor, &room, params->our_mac_addr, UCI_PARAM_LEN_DEVICE_MAC_ADDRESS);
     parmcount++;
-    require_noerr( ret, exit );
+    require_noerr(ret, exit);
 
-    ret  = _UWB_PUT_UINT8( &cursor, &room, UCI_PARAM_ID_RANGING_ROUND_USAGE );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, UCI_PARAM_LEN_RANGING_METHOD );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, 2 );
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_RANGING_ROUND_USAGE);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_LEN_RANGING_METHOD);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, 2);
     parmcount++;
-    require_noerr( ret, exit );
+    require_noerr(ret, exit);
 
-    ret  = _UWB_PUT_UINT8( &cursor, &room, UCI_PARAM_ID_DEVICE_TYPE );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, UCI_PARAM_LEN_DEVICE_TYPE );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, params->device_type );
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_DEVICE_TYPE);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_LEN_DEVICE_TYPE);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, params->device_type);
     parmcount++;
-    require_noerr( ret, exit );
+    require_noerr(ret, exit);
 
 #if 0
-    ret  = _UWB_PUT_UINT8( &cursor, &room, UCI_PARAM_ID_RANGING_ROUND_CONTROL );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, 1/*UCI_PARAM_LEN_RANGING_ROUND_CONTROL*/ );
-    ret |= _UWB_PUT_UINT8( &cursor, &room, 3 );
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_RANGING_ROUND_CONTROL);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, 1/*UCI_PARAM_LEN_RANGING_ROUND_CONTROL*/);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, 3);
     parmcount++;
-    require_noerr( ret, exit );
+    require_noerr(ret, exit);
 #endif
-    *outBufferCount = cursor - inBuffer;
 
     // back annotate length
     datalen = cursor - lenpos - 1;
-    cursor = lenpos;
-    room = 4;
-    ret  = _UWB_PUT_UINT8( &cursor, &room, datalen );
-    require_noerr( ret, exit );
+    lenroom = 4;
+    ret  = _UWB_PUT_UINT8(&lenpos, &lenroom, datalen);
+    require_noerr(ret, exit);
 
     // back annotate parameter count
-    cursor = parmcountpos;
-    room = 4;
-    ret  = _UWB_PUT_UINT8( &cursor, &room, parmcount );
-    require_noerr( ret, exit );
+    lenroom = 4;
+    ret  = _UWB_PUT_UINT8(&parmcountpos, &lenroom, parmcount);
+    require_noerr(ret, exit);
+
+    *outBufferCount = cursor - inBuffer;
 
 exit:
     return ret;
 }
+
+int AliroUWBbuildVendorConfiguration(
+    uint32_t sessionIdentifier,
+    uint8_t *sessionKey,
+    int sessionKeyLength,
+    uint8_t *inBuffer,
+    size_t inBufferSize,
+    size_t *outBufferCount)
+{
+    int ret = -EINVAL;
+    uint8_t *cursor = inBuffer;
+    uint8_t *lenpos;
+    uint8_t *parmcountpos;
+    int room = inBufferSize;
+    int lenroom;
+    int parmcount = 0;
+    int datalen;
+
+    /** 12 bytes of Random Key with its 1st 4 bytes set as 0xB5 to distinguish URSK from WRAPPED_RDS */
+    uint8_t randomKey[RANDOM_KEY_LEN] = {0xB5, 0xB5, 0xB5, 0xB5, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10};
+
+    require(sessionKey, exit);
+    require(inBuffer && (inBufferSize > 16) && outBufferCount, exit);
+
+    // UCI header
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_MTS_CMD | UCI_GID_VENDOR);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, UCI_MSG_SESSION_VENDOR_SET_APP_CONFIG);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, 0x00);
+    lenpos = cursor;
+    ret |= _UWB_PUT_UINT8(&cursor, &room, 0);
+    require_noerr(ret, exit);
+
+    // 4 byte session handle goes here
+    ret  = _UWB_PUT_UINT32(&cursor, &room, 0x00);
+
+    // number of parameters
+    parmcountpos = cursor;
+    ret |= _UWB_PUT_UINT8(&cursor, &room, parmcount);
+    require_noerr(ret, exit);
+
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_VENDOR_PARAM_ID_WRAPPED_RDS);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, CCC_WRAPPED_RDS_LEN);
+
+    if (sessionKeyLength == CCC_SESSION_KEY_LEN)
+    {
+        /** Plain URSK passed, form the Wrapped RDS */
+        /* SessionID (4 bytes) */
+        ret = _UWB_PUT_UINT32(&cursor, &room, sessionIdentifier);
+        require_noerr(ret, exit);
+
+        /* Random Key (12 bytes) */
+        ret = _UWB_PUT_DATA(&cursor, &room, randomKey, RANDOM_KEY_LEN);
+        require_noerr(ret, exit);
+
+        /* URSK */
+        ret = _UWB_PUT_DATA(&cursor, &room, sessionKey, sessionKeyLength);
+        require_noerr(ret, exit);
+
+        parmcount++;
+    }
+    else
+    {
+        LOG_ERR("Bad key size");
+    }
+
+    // back annotate length
+    datalen = cursor - lenpos - 1;
+    lenroom = 4;
+    ret  = _UWB_PUT_UINT8(&lenpos, &lenroom, datalen);
+    require_noerr(ret, exit);
+
+    // back annotate parameter count
+    lenroom = 4;
+    ret  = _UWB_PUT_UINT8(&parmcountpos, &lenroom, parmcount);
+    require_noerr(ret, exit);
+
+    *outBufferCount = cursor - inBuffer;
+
+exit:
+    return ret;
+}
+

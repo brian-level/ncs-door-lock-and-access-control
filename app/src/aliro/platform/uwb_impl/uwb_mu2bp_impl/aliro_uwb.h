@@ -11,7 +11,7 @@ extern "C" {
 
 #include "uwbproto.h"
 
-    /* WrappedRDS parameter lengths */
+/* WrappedRDS parameter lengths */
 #define RANDOM_KEY_LEN      12
 #define CCC_SESSION_KEY_LEN 32
 #define CCC_WRAPPED_RDS_LEN (SESSION_ID_LEN + RANDOM_KEY_LEN + CCC_SESSION_KEY_LEN)
@@ -90,7 +90,19 @@ int AliroUWBbuildM3(uwb_session_params_t *params, uint8_t *outbuf, const size_t 
 int AliroUWBparseM4(uwb_config_params_t *config, uwb_session_params_t *params, const uint8_t *inbuf, const size_t inLength);
 int AliroUWBbuildState(uint8_t source, uint8_t value, uint8_t *outbuf, const size_t outbufSize, size_t *bytesMade);
 
-int AliroUWBbuildAppConfiguration(uwb_session_params_t *params, uint8_t *inBuffer, size_t inBufferSize, size_t *outBufferCount);
+int AliroUWBbuildAppConfiguration(
+    uwb_session_params_t *params,
+    uint8_t *inBuffer,
+    size_t inBufferSize,
+    size_t *outBufferCount);
+
+int AliroUWBbuildVendorConfiguration(
+    uint32_t sessionIdentifier,
+    uint8_t *sessionKey,
+    int sessionKeyLength,
+    uint8_t *inBuffer,
+    size_t inBufferSize,
+    size_t *outBufferCount);
 
 #ifdef __cplusplus
 }

@@ -63,6 +63,33 @@
  **********************************************/
 #define EXT_UCI_MSG_RADAR_NTF 0x0A
 
+/**********************************************
+ * UCI vendor group(UCI_GID_VENDOR)- 0xf: Opcodes
+ **********************************************/
+#define VENDOR_UCI_MSG_SET_VENDOR_APP_CONFIG_CMD                          0x00
+#define VENDOR_UCI_MSG_URSK_DELETION_REQ                                  0x01
+#define VENDOR_UCI_MSG_GET_ALL_UWB_SESSIONS                               0x02
+#define VENDOR_UCI_MSG_GET_VENDOR_APP_CONFIG_CMD                          0x03
+#define VENDOR_UCI_MSG_DO_CHIP_CALIBRATION                                0x20
+#define VENDOR_UCI_MSG_SET_DEVICE_CALIBRATION                             0x21
+#define VENDOR_UCI_MSG_GET_DEVICE_CALIBRATION                             0x22
+#define VENDOR_UCI_MSG_SET_SECURE_CALIBRATION                             0x23
+#define VENDOR_UCI_MSG_SE_DO_TEST_CONNECTIVITY                            0x30
+#define VENDOR_UCI_MSG_SE_DO_BIND                                         0x31
+#define VENDOR_UCI_MSG_ESE_BINDING_CHECK_CMD                              0x32
+#define VENDOR_UCI_MSG_PSDU_LOG_NTF                                       0x33
+#define VENDOR_UCI_MSG_CIR_LOG_NTF                                        0x34
+#define VENDOR_UCI_MSG_UWB_WLAN_IND_STATUS_NTF                            0x39
+#define VENDOR_UCI_MSG_WLAN_UWB_IND_STATUS_NTF                            0x3A
+#define VENDOR_UCI_MSG_UWB_WLAN_COEX_MAX_GRANT_DURATION_EXCEEDED_WARN_NTF 0x3B
+
+/**
+ * UCI Vendor app config
+ */
+#define UCI_MSG_SESSION_VENDOR_SET_APP_CONFIG 0x00
+#define UCI_MSG_SESSION_VENDOR_GET_APP_CONFIG 0x03
+
+
 /**********************************************************
  * UCI Extention Parameter IDs : Device Information
  *********************************************************/

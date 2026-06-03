@@ -75,6 +75,6 @@ typedef struct
 }
 range_data_t;
 
-int UWBrangeData( const uint8_t inAntennaSel, const uint8_t *inData, const int inCount );
-int UWBrangeInit(const bool inHaveDisplay, const int16_t inRSSIoffset[2] );
+int UWBrangeData(const uint8_t inAntennaSel, const uint8_t *inData, const int inCount);
+int UWBrangeInit(const bool inHaveDisplay, const int16_t inRSSIoffset[2]);
 

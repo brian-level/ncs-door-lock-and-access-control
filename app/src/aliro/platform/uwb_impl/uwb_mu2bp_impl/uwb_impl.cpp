@@ -200,6 +200,9 @@ AliroError UltraWideBandImpl::_HandleBleMessage(const uint8_t *data, size_t leng
     int ret;
     struct uwbSessionContext *connection;
     size_t outLength;
+    size_t outAppConfigLength;
+    size_t outVendorConfigLength;
+    uint8_t vendorConfig[128];
 
     LOG_HEXDUMP_INF(data, length, "BLE BLOB");
 
@@ -238,7 +241,21 @@ AliroError UltraWideBandImpl::_HandleBleMessage(const uint8_t *data, size_t leng
             VerifyOrReturnStatus(!ret, ALIRO_ERROR_INTERNAL);
             AliroUWBConfigPrint("Post M4", &connection->sessionParameters);
             // create an app config message
-            ret = AliroUWBbuildAppConfiguration(&connection->sessionParameters, mMessage, sizeof(mMessage), &outLength);
+            ret = AliroUWBbuildAppConfiguration(
+                        &connection->sessionParameters,
+                        mMessage,
+                        sizeof(mMessage),
+                        &outAppConfigLength);
+            VerifyOrReturnStatus(!ret, ALIRO_ERROR_INTERNAL);
+
+            // create a vedor app config message
+            ret = AliroUWBbuildVendorConfiguration(
+                        connection->sessionIdentifier,
+                        connection->ursk.data(),
+                        sizeof(connection->ursk),
+                        vendorConfig,
+                        sizeof(vendorConfig),
+                        &outVendorConfigLength);
             VerifyOrReturnStatus(!ret, ALIRO_ERROR_INTERNAL);
 
             // startup uwb radio
@@ -249,7 +266,9 @@ AliroError UltraWideBandImpl::_HandleBleMessage(const uint8_t *data, size_t leng
                         false,
                         (void*)connection,
                         mMessage,
-                        outLength);
+                        outAppConfigLength,
+                        vendorConfig,
+                        outVendorConfigLength);
             VerifyOrReturnStatus(!ret, ALIRO_ERROR_INTERNAL);
             err = ALIRO_NO_ERROR;
             break;

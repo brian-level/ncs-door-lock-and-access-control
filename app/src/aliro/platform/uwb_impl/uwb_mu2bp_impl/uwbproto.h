@@ -342,6 +342,8 @@ exit:
     return ret;
 }
 
+const char *UWBexplainStatus(const uint8_t status);
+
 void UWBgetConfigParameters(uwb_config_params_t *params);
 void UWBinitSessionParameters(uwb_config_params_t *config, uwb_session_params_t *inoutParams);
 
@@ -352,8 +354,10 @@ int UWBstart(
     const uint32_t inSessionId,
     const bool inConfigDataIsProfile,
     const void *inConnectionHandle,
-    const uint8_t *inConfigData,
-    const int inConfigDataLength);
+    const uint8_t *inAppConfigData,
+    const int inAppConfigDataLength,
+    const uint8_t *inVendorConfigData,
+    const int inVendorConfigDataLength);
 
 int UWBstop(const void *inConnectionHandle);
 

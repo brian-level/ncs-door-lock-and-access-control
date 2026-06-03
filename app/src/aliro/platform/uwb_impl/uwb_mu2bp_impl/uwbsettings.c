@@ -183,50 +183,50 @@ static int _SessionStateCallback(uwb_session_t *session, uint8_t state, uint8_t 
     }
 
 
-        if (!ret)
+    if (!ret)
+    {
+        ret = UWBstart(connection->device_type,
+                       connection->session_id,
+                       connection->has_profile_data,
+                       conn_ctx, mNI.msgbuf,
+                       mNI.msgcnt);
+
+        if (ret)
         {
-            ret = UWBstart(connection->device_type,
-                           connection->session_id,
-                           connection->has_profile_data,
-                           conn_ctx, mNI.msgbuf,
-                           mNI.msgcnt);
+            LOG_WRN("Can't start session");
 
-            if (ret)
+            if (conn_ctx)
             {
-                LOG_WRN("Can't start session");
+                uint8_t msgbuf[8];
+                int msgcnt;
 
-                if (conn_ctx)
-                {
-                    uint8_t msgbuf[8];
-                    int msgcnt;
-
-                    ret = _NIcreateSimpleMessage(UWBMSG_DID_STOP, msgbuf, sizeof(msgbuf), &msgcnt);
-                    require_noerr(ret, exit);
-                    ret = _NItxMessage(conn_ctx, msgbuf, msgcnt);
-                }
+                ret = _NIcreateSimpleMessage(UWBMSG_DID_STOP, msgbuf, sizeof(msgbuf), &msgcnt);
+                require_noerr(ret, exit);
+                ret = _NItxMessage(conn_ctx, msgbuf, msgcnt);
             }
         }
-
-        break;
-
-    case UWBMSG_STOP:
-        ret = UWBstop(conn_ctx);
-        break;
-
-    case UWBMSG_HACK_CONSOLE:
-        LOG_DBG("Setting BLE connection as console");
-        connection->conn_type = NI_BLE_CONSOLE;
-        ret = 0;
-        break;
-
-    default:
-        ret = 0;
-        LOG_WRN("Ignoring cmd 0x%02X", inData[0]);
-        break;
     }
 
+    break;
+
+case UWBMSG_STOP:
+    ret = UWBstop(conn_ctx);
+    break;
+
+case UWBMSG_HACK_CONSOLE:
+    LOG_DBG("Setting BLE connection as console");
+    connection->conn_type = NI_BLE_CONSOLE;
+    ret = 0;
+    break;
+
+default:
+    ret = 0;
+    LOG_WRN("Ignoring cmd 0x%02X", inData[0]);
+    break;
+}
+
 exit:
-    return ret;
+return ret;
 }
 #endif
 
@@ -755,6 +755,7 @@ static int _CmdAntSel(const struct shell *shell, size_t argc, char **argv)
             }
         }
     }
+
 #endif
     NIrestartUWB();
     return 0;
