@@ -73,7 +73,8 @@ private:
         uwbSessionContext(SessionContextHandle sessionContextHandle)
             : sessionHandle(sessionContextHandle), uwbSession(NULL)
         {
-            UWBinitSessionParameters(&sessionParameters);
+            UWBgetConfigParameters(&configParameters);
+            UWBinitSessionParameters(&configParameters, &sessionParameters);
         }
 
         sys_snode_t mSessionContextNode{};
@@ -82,18 +83,9 @@ private:
         SessionContextHandle sessionHandle;
         CryptoTypes::Ursk ursk;
         ProtocolVersion protocolVersion;
+        uwb_config_params_t  configParameters;
         uwb_session_params_t sessionParameters;
-
         uwb_session_t *uwbSession;
-
-        bool        in_use;
-        uint32_t    session_id;
-        uint8_t     device_role;
-        uint8_t     device_type;
-        uint8_t     profile_id;
-        uint8_t     our_mac_addr[2];
-        uint16_t    our_uwb_ver[2];
-
         e_session_state_t session_state;
     };
 

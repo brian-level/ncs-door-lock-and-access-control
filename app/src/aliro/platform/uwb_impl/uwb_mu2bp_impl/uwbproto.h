@@ -132,21 +132,52 @@ uwb_device_info_t;
 
 typedef struct
 {
-    uint16_t configIdentifier;
-    uint8_t pulseShapeCombo;
-    uint8_t channelBitmask;
-    uint32_t syncCodeIndexBitmask;
-    uint8_t syncCodeIndex;
-    uint8_t ranMultiplier;
-    uint8_t hoppingBitmask;
-    uint32_t hopModeKey;
-    uint8_t chapsPerSlot;
-    uint8_t slotsPerRound;
-    uint8_t slotBitmask;
-    uint8_t respondersNodes;
-    uint8_t macMode;
-    uint32_t stsIndex0;
-    uint32_t uwbTime0;
+    uint16_t    *config_identifiers;
+    int         num_config_identifiers;
+    uint8_t     *pulse_shape_combos;
+    int         num_pulse_shape_combos;
+    uint16_t    configIdentifier;
+    uint8_t     pulseShapeCombo;
+    uint8_t     channelBitmask;
+    uint32_t    syncCodeIndexBitmask;
+    uint8_t     syncCodeIndex;
+    uint8_t     ranMultiplier;
+    uint8_t     hoppingBitmask;
+    uint32_t    hopModeKey;
+    uint8_t     chapsPerSlot;
+    uint8_t     slotsPerRound;
+    uint8_t     slotBitmask;
+    uint8_t     respondersNodes;
+    uint8_t     macMode;
+    uint8_t     channel;
+}
+uwb_config_params_t;
+
+typedef struct
+{
+    uint16_t    configIdentifier;
+    uint8_t     pulseShapeCombo;
+    uint8_t     channelBitmask;
+    uint32_t    syncCodeIndexBitmask;
+    uint8_t     syncCodeIndex;
+    uint8_t     ranMultiplier;
+    uint8_t     hoppingBitmask;
+    uint32_t    hopModeKey;
+    uint8_t     chapsPerSlot;
+    uint8_t     slotsPerRound;
+    uint8_t     slotBitmask;
+    uint8_t     respondersNodes;
+    uint8_t     macMode;
+    uint32_t    stsIndex0;
+    uint32_t    uwbTime0;
+
+    uint8_t     device_role;
+    uint8_t     device_type;
+    uint8_t     profile_id;
+    uint8_t     channel;
+    uint8_t     our_mac_addr[2];
+    uint8_t     dst_mac_addr[2];
+    uint16_t    our_uwb_ver[2];
 }
 uwb_session_params_t;
 
@@ -311,7 +342,8 @@ exit:
     return ret;
 }
 
-void UWBinitSessionParameters(uwb_session_params_t *inoutParams);
+void UWBgetConfigParameters(uwb_config_params_t *params);
+void UWBinitSessionParameters(uwb_config_params_t *config, uwb_session_params_t *inoutParams);
 
 int UWBgetDeviceInfo(uwb_device_info_t **outDevInfo);
 

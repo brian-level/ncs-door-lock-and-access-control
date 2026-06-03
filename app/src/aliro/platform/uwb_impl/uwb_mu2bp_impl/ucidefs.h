@@ -312,7 +312,8 @@ Reserved for Proprietary use: 0xE3-0xFF
 #define UCI_PARAM_ID_PULSESHAPE_COMBO                  0xA5
 #define UCI_PARAM_ID_URSK_TTL                          0xA6
 #define UCI_PARAM_ID_RESPONDER_LISTEN_ONLY             0xA7
-#define UCI_PARAM_ID_LAST_STS_INDEX_USED               0xA8
+#define UCI_PARAM_ID_LAST_STS2_INDEX_USED               0xA8
+#define UCI_PARAM_ID_ALIRO_MAC_MODE                    0xA9
 
 /* UCI Parameter ID Length */
 #define UCI_PARAM_LEN_DEVICE_ROLE                0x01

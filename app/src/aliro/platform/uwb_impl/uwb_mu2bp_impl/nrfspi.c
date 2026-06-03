@@ -1,5 +1,5 @@
 #include "nrfspi.h"
-#include "uwb_cli.h"
+#include "uwbsettings.h"
 #include "assertmacros.h"
 
 #include <stdio.h>

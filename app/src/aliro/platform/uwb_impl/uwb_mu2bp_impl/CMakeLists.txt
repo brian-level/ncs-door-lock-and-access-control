@@ -4,7 +4,7 @@ SET(uwb_src
     uwb_impl.cpp
     aliro_uwb.c
     uwbrange.c
-    uwb_cli.c
+    uwbsettings.c
     uwbproto.c
     uwbcanned.c
     uciproto.c

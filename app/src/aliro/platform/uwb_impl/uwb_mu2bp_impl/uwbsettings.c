@@ -1,4 +1,4 @@
-#include "uwb_cli.h"
+#include "uwbsettings.h"
 #include "uwbproto.h"
 #include "uwbdefs.h"
 #include "uwbcanned.h"
@@ -726,9 +726,7 @@ static int _CmdAntMode(const struct shell *shell, size_t argc, char **argv)
 
 static int _CmdAntSel(const struct shell *shell, size_t argc, char **argv)
 {
-    uwb_session_t *session;
     uint8_t sel = ANTSEL_FRONT;
-//    int i;
 
     if (argc > 1)
     {
@@ -742,6 +740,9 @@ static int _CmdAntSel(const struct shell *shell, size_t argc, char **argv)
 
     shell_print(shell, "Setting antenna to %s for all sessions", (sel == ANTSEL_BACK) ? "indoor" : "outdoor");
 #if 0
+    uwb_session_t *session;
+    int i;
+
     for (i = 0; i < NI_MAX_CONNECTIONS; i++)
     {
         if (mNI.connections[ i ].conn_ctx)
@@ -962,7 +963,7 @@ SHELL_CMD_REGISTER(ni, &sub_ni, "Nearby Interaction", NULL);
 
 #endif
 
-int UWBcliInit(session_state_callback_t sessionStateCallback, const bool inHaveDisplay)
+int UWBsettingsInit(session_state_callback_t sessionStateCallback, const bool inHaveDisplay)
 {
     int ret = 0;
 

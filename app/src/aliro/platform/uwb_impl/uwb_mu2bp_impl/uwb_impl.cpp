@@ -15,7 +15,7 @@
 #include "uwbdefs.h"
 #include "aliro_proto.h"
 #include "aliro_uwb.h"
-#include "uwb_cli.h"
+#include "uwbsettings.h"
 
 #include <zephyr/kernel.h>
 #include <zephyr/types.h>
@@ -145,7 +145,7 @@ AliroError UltraWideBandImpl::_Init(const Callbacks &callbacks)
 {
     int ret;
 
-    ret = UWBcliInit(_SessionStateCallback, false);
+    ret = UWBsettingsInit(_SessionStateCallback, false);
     if (ret)
     {
         return ALIRO_ERROR_INTERNAL;
@@ -223,8 +223,9 @@ AliroError UltraWideBandImpl::_HandleBleMessage(const uint8_t *data, size_t leng
         {
         case ALIRO_PT_UWB_SSM2:
             VerifyOrReturnStatus(length > 4, ALIRO_INVALID_ARGUMENT);
-            ret = AliroUWBparseM2(&connection->sessionParameters, data + 4, length - 4);
+            ret = AliroUWBparseM2(&connection->configParameters, &connection->sessionParameters, data + 4, length - 4);
             VerifyOrReturnStatus(!ret, ALIRO_ERROR_INTERNAL);
+            AliroUWBConfigPrint("Post M2", &connection->sessionParameters);
             ret = AliroUWBbuildM3(&connection->sessionParameters, mMessage, sizeof(mMessage), &outLength);
             VerifyOrReturnStatus(!ret && outLength > 0, ALIRO_ERROR_INTERNAL);
             LOG_HEXDUMP_INF(mMessage, outLength, "M3 -------------------");
@@ -233,7 +234,11 @@ AliroError UltraWideBandImpl::_HandleBleMessage(const uint8_t *data, size_t leng
             break;
         case ALIRO_PT_UWB_SSM4:
             VerifyOrReturnStatus(length > 4, ALIRO_INVALID_ARGUMENT);
-            ret = AliroUWBparseM4(&connection->sessionParameters, data + 4, length - 4);
+            ret = AliroUWBparseM4(&connection->configParameters, &connection->sessionParameters, data + 4, length - 4);
+            VerifyOrReturnStatus(!ret, ALIRO_ERROR_INTERNAL);
+            AliroUWBConfigPrint("Post M4", &connection->sessionParameters);
+            // create an app config message
+            ret = AliroUWBbuildAppConfiguration(&connection->sessionParameters, mMessage, sizeof(mMessage), &outLength);
             VerifyOrReturnStatus(!ret, ALIRO_ERROR_INTERNAL);
 
             // startup uwb radio
@@ -243,8 +248,8 @@ AliroError UltraWideBandImpl::_HandleBleMessage(const uint8_t *data, size_t leng
                         connection->sessionIdentifier,
                         false,
                         (void*)connection,
-                        NULL,
-                        0);
+                        mMessage,
+                        outLength);
             VerifyOrReturnStatus(!ret, ALIRO_ERROR_INTERNAL);
             err = ALIRO_NO_ERROR;
             break;
@@ -286,7 +291,8 @@ AliroError UltraWideBandImpl::_HandleBleMessage(const uint8_t *data, size_t leng
 
             // Build an UWB M1 message and send back
             //
-            ret = AliroUWBbuildM1((uint32_t)connection->sessionIdentifier, &connection->sessionParameters, mMessage, sizeof(mMessage), &outLength);
+            AliroUWBConfigPrint("Pre M1", &connection->sessionParameters);
+            ret = AliroUWBbuildM1((uint32_t)connection->sessionIdentifier, &connection->configParameters, mMessage, sizeof(mMessage), &outLength);
             VerifyOrReturnStatus(ret == 0 && outLength > 0, ALIRO_ERROR_INTERNAL, LOG_ERR("Can't build M1"));
             LOG_HEXDUMP_INF(mMessage, outLength, "M1 -------------------");
             TransmitBleMessage(connection->sessionHandle, mMessage, outLength);
@@ -336,20 +342,19 @@ AliroError UltraWideBandImpl::AddSession(SessionContextHandle sessionHandle)
     auto newCtx = Aliro::new_nothrow<struct uwbSessionContext>(sessionHandle);
     VerifyOrReturnStatus(newCtx, ALIRO_NO_MEMORY, LOG_ERR("Memory allocation failed for session context."));
 
-    newCtx->in_use = true;
     newCtx->session_state = SS_INACTIVE;
 
     /// TODO - generate random mac address?
-#if 1 // be the controller (reader app is controllee for Aliro)
-    newCtx->device_type = UWB_DeviceType_Controller;
-    newCtx->device_role = UWB_DeviceRole_Initiator;
-    newCtx->our_mac_addr[0] = 0x11;
-    newCtx->our_mac_addr[1] = 0x11;
-#else
-    newCtx->device_type = UWB_DeviceType_Controlee;
-    newCtx->device_role = UWB_DeviceRole_Responder;
-    newCtx->our_mac_addr[0] = 0x22;
-    newCtx->our_mac_addr[1] = 0x22;
+#if 0 // be the controller
+    newCtx->sessionParameters.device_type = UWB_DeviceType_Controller;
+    newCtx->sessionParameters.device_role = UWB_DeviceRole_Initiator;
+    newCtx->sessionParameters.our_mac_addr[0] = 0x11;
+    newCtx->sessionParameters.our_mac_addr[1] = 0x11;
+#else //  (reader app is controllee for Aliro)
+    newCtx->sessionParameters.device_type = UWB_DeviceType_Controlee;
+    newCtx->sessionParameters.device_role = UWB_DeviceRole_Responder;
+    newCtx->sessionParameters.our_mac_addr[0] = 0x22;
+    newCtx->sessionParameters.our_mac_addr[1] = 0x22;
 #endif
     LOG_DBG("New uwbCtx %08X for BLE Conn %08X\n",
             (uint32_t)(uintptr_t)newCtx,

@@ -7,7 +7,7 @@
 #include "ucidefs.h"
 #include "uciextdefs.h"
 #include "nrfspi.h"
-#include "uwb_cli.h"
+#include "uwbsettings.h"
 #include "assertmacros.h"
 
 #include <stdio.h>
@@ -34,6 +34,8 @@ LOG_MODULE_REGISTER(uwb);
     mUWB.state_timer = k_uptime_get() + _uwb_time_for_state(ns)
 
 #define UWB_MAX_COMMAND_SET (16)
+
+#define SYNC_CODE_BITMASK(val) (0x01U << ((val)-1U))
 
 #define IPC_GPIO_NODE DT_PATH(gpio)
 static const struct gpio_dt_spec mAnt_Sel = GPIO_DT_SPEC_GET(DT_NODELABEL(uwb_ant_sel), gpios);
@@ -93,6 +95,10 @@ static struct
     uwb_device_info_t device_info;
 }
 mUWB;
+
+static uint16_t s_config_identifiers[] = { 0x0000, 0x0001 };
+static uint8_t  s_pulse_shape_combos[] = { 0x00, 0x11, 0x22 };
+
 
 static int __uwb_parse_device_info(const uint8_t *inData, const int inLength)
 {
@@ -783,10 +789,17 @@ static int _uwb_initialize(
                     /*UWB_EXT_READ_CALIB_DATA_TX_POWER_NTF*/
                     uint8_t offset;
                     offset = (uint8_t)((int)payload[2] + (int)(mUWB.power_offset + ((2.1 - 0.6 + 0.5) * 4)));               /* murata evk */
+#if 1 // TODO - getting out of range errors with these?
+                    UWB_SET_CALIBRATION_TX_POWER_CH5[11] = 0;
+                    UWB_SET_CALIBRATION_TX_POWER_CH9[11] = 0;
+                    UWB_SET_CALIBRATION_TX_POWER_CH5[9] = 0;
+                    UWB_SET_CALIBRATION_TX_POWER_CH9[9] = 0;
+#else
                     UWB_SET_CALIBRATION_TX_POWER_CH5[11] = offset;
                     UWB_SET_CALIBRATION_TX_POWER_CH9[11] = offset;
                     UWB_SET_CALIBRATION_TX_POWER_CH5[9] = payload[3];
                     UWB_SET_CALIBRATION_TX_POWER_CH9[9] = payload[3];
+#endif
                     mUWB.do_OTP_Read_Power = false;
                 }
                 else
@@ -1037,8 +1050,9 @@ static int _uwb_initialize(
                     mUWB.commands[mUWB.command_set_count++] = UWB_SET_CALIBRATION_RF_CLK_ACCURACY_CALIB_CH9;
                     mUWB.command_size[mUWB.command_set_count] = UWB_SET_CALIBRATION_RX_ANT_DELAY_CALIB_CH9_SIZE;
                     mUWB.commands[mUWB.command_set_count++] = UWB_SET_CALIBRATION_RX_ANT_DELAY_CALIB_CH9;
-                    mUWB.command_size[mUWB.command_set_count] = UWB_SET_CALIBRATION_TX_POWER_CH9_SIZE;
-                    mUWB.commands[mUWB.command_set_count++] = UWB_SET_CALIBRATION_TX_POWER_CH9;
+                    // TODO - this breaks latest aliro f/w
+                    //mUWB.command_size[mUWB.command_set_count] = UWB_SET_CALIBRATION_TX_POWER_CH9_SIZE;
+                    //mUWB.commands[mUWB.command_set_count++] = UWB_SET_CALIBRATION_TX_POWER_CH9;
                 }
             }
 
@@ -1736,36 +1750,67 @@ int UWBslice(uint32_t *delay)
     return ret;
 }
 
-void UWBinitSessionParameters(uwb_session_params_t *params)
+void UWBgetConfigParameters(uwb_config_params_t *config)
 {
-    memset(params, 0, sizeof(uwb_session_params_t));
+    require(config, exit);
 
-    params->configIdentifier = 1;
+    config->config_identifiers = s_config_identifiers;
+    config->num_config_identifiers = sizeof(s_config_identifiers)/sizeof(s_config_identifiers[0]);
+    config->pulse_shape_combos = s_pulse_shape_combos;
+    config->num_pulse_shape_combos = sizeof(s_pulse_shape_combos) / sizeof(s_pulse_shape_combos[0]);
 
+    config->channel = UWB_CHANNEL_NUMBER;
     if (UWB_CHANNEL_NUMBER == 5)
     {
-        params->channelBitmask |= (1 << 0);
+        config->channelBitmask |= (1 << 0);
     }
     else if (UWB_CHANNEL_NUMBER == 9)
     {
-        params->channelBitmask |= (1 << 1);
+        config->channelBitmask |= (1 << 1);
     }
     else
     {
         LOG_ERR("Not supporting non 5/9 channel");
     }
 
-    params->pulseShapeCombo = 0;
-    params->syncCodeIndexBitmask = 0;
-    params->ranMultiplier = 0;
-    params->hoppingBitmask = 0;
-    params->chapsPerSlot = 4;
-    params->slotsPerRound = 9;
-    params->respondersNodes = 1;
-    params->macMode = 0;
-    params->stsIndex0 = 0;
-    params->uwbTime0 = 0;
-    params->syncCodeIndex = 0;
+    config->configIdentifier     = 1;
+    config->pulseShapeCombo      = 0;
+    config->syncCodeIndexBitmask = SYNC_CODE_BITMASK(12) | SYNC_CODE_BITMASK(11) |
+                                   SYNC_CODE_BITMASK(10) | SYNC_CODE_BITMASK(9);
+    config->ranMultiplier        = 1;
+    config->hoppingBitmask       = 0x50;
+    config->chapsPerSlot         = 4;
+    config->slotsPerRound        = 6;
+    config->respondersNodes      = 1;
+    config->macMode              = 0x40 | 0x01;
+
+exit:
+    return;
+}
+
+void UWBinitSessionParameters(uwb_config_params_t *config, uwb_session_params_t *params)
+{
+    require(params, exit);
+
+    memset(params, 0, sizeof(uwb_session_params_t));
+
+    params->configIdentifier     = config->configIdentifier;
+    params->channel              = config->channel;
+    params->channelBitmask       = config->channelBitmask;
+    params->pulseShapeCombo      = config->pulseShapeCombo;
+    params->syncCodeIndexBitmask = config->syncCodeIndexBitmask;
+    params->ranMultiplier        = config->ranMultiplier;
+    params->hoppingBitmask       = config->hoppingBitmask;
+    params->chapsPerSlot         = config->chapsPerSlot;
+    params->slotsPerRound        = config->slotsPerRound;
+    params->respondersNodes      = config->respondersNodes;
+    params->macMode              = config->macMode;
+
+    params->stsIndex0       = 0;
+    params->uwbTime0        = 0;
+    params->syncCodeIndex   = 0;
+exit:
+    return;
 }
 
 int UWBinit(session_state_callback_t inSessionStateCallback,
@@ -1813,6 +1858,7 @@ int UWBinit(session_state_callback_t inSessionStateCallback,
     //
     mUWB.one_time_init_request = true;
 
+    ret = UWBrangeInit(inHaveDisplay, inRSSIoffset);
     return ret;
 }
 

@@ -55,4 +55,15 @@
 //
 #define UWB_DeviceType_Controlee  (0)
 #define UWB_DeviceType_Controller (1)
+#define UWB_DeviceType_CCC_Controller (0xA0) /* device */
+#define UWB_DeviceType_CCC_Controllee (0xA1) /* vehicle */
+
+// Hopping modes
+//
+#define UWB_CCC_HopMode_Disable     (0x00)  /* No Hopping */
+#define UWB_CCC_HopMode_Cont_AES    (0xA0)  /* Continuous Hopping mode with AES-based hopping sequence */
+#define UWB_CCC_HopMode_Cont_def    (0xA1)  /* Continuous hopping mode with default hopping sequence */
+#define UWB_CCC_HopMode_Adapt_AES   (0xA2)  /* Adaptive hopping mode with AES based hopping sequence. */
+#define UWB_CCC_HopMode_Adapt_def   (0xA3)  /* Adaptive Hopping mode with default hopping sequence. */
+#define UWB_NXP_HopMode_Adapt       (0xA4)  /* NXP Adaptive Hopping mode. */
 
