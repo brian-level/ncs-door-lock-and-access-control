@@ -514,7 +514,7 @@ static int __uwb_parse_device_info(const uint8_t *inData, const int inLength)
         case UCI_EXT_PARAM_ID_VENDOR_UCI_VER:
             require(length == 3, exit);
             di->nxpUciMajor = _UWB_GET_UINT8(&cursor);
-            di->nxpUciMinor = _UWB_GET_UINT8(&cursor);
+            di->nxpUciMajor = _UWB_GET_UINT8(&cursor);
             di->nxpUciPatch = _UWB_GET_UINT8(&cursor);
             break;
 
@@ -571,6 +571,7 @@ static int __uwb_parse_device_info(const uint8_t *inData, const int inLength)
     }
 
     LOG_INF("UWB Model %s", di->devName);
+    LOG_INF("UWB FW Ver %02x.%02x-%x", di->fwMajor, di->fwMinor, di->fwRc);
     ret = 0;
 exit:
     return ret;
@@ -1048,9 +1049,9 @@ static int _uwb_initialize(
                 LOG_WRN("bad payload for sess ntf");
             }
         }
-        else if (gid == UCI_GID_RANGE_MANAGE && oid == 0x00)
+        else if (gid == UCI_GID_RANGE_MANAGE && (oid == UWBD_RANGING_DATA || oid == UWBD_RANGING_CCC_DATA))
         {
-            uint8_t *cursor = payload + 4;
+            uint8_t *cursor = payload + ((oid == UWBD_RANGING_DATA) ? 4 : 0);
 
             // session id is uint32 4 bytes into range payload
             session_handle = _UWB_GET_UINT32(&cursor);
@@ -1058,7 +1059,16 @@ static int _uwb_initialize(
 
             if (session)
             {
-                int rret = UWBrangeData(session->current_antenna_sel, payload, payloadLength);
+                int rret;
+
+                if (oid == UWBD_RANGING_CCC_DATA)
+                {
+                    rret = UWBcccRangeData(session->current_antenna_sel, payload, payloadLength);
+                }
+                else
+                {
+                    rret = UWBrangeData(session->current_antenna_sel, payload, payloadLength);
+                }
 
                 if (rret)
                 {
@@ -1434,6 +1444,7 @@ static int _uwb_initialize(
                     LOG_ERR("No new session for init-session");
                 }
 
+                UWB_SESSION_INIT_RANGING[8] = UWBD_CSA_SESSION;
                 mUWB.command_size[mUWB.command_set_count] = UWB_SESSION_INIT_RANGING_SIZE;
                 mUWB.commands[mUWB.command_set_count++] = _uwb_add_session_handle(session, UWB_SESSION_INIT_RANGING);
             }
@@ -1457,8 +1468,8 @@ static int _uwb_initialize(
                 }
 
                 // set canned/common config
-                mUWB.command_size[mUWB.command_set_count] = UWB_SESSION_SET_XAPP_CONFIG_SIZE;
-                mUWB.commands[mUWB.command_set_count++] = _uwb_add_session_handle(session, UWB_SESSION_SET_XAPP_CONFIG);
+                //mUWB.command_size[mUWB.command_set_count] = UWB_SESSION_SET_XAPP_CONFIG_SIZE;
+                //mUWB.commands[mUWB.command_set_count++] = _uwb_add_session_handle(session, UWB_SESSION_SET_XAPP_CONFIG);
             }
             else
             {
@@ -1797,17 +1808,23 @@ static int _uwb_initialize(
 
                 LOG_ERR("UCI Status: %s (state %d)", status_str, mUWB.next_init_state);
 
-                if (gid == UCI_GID_SESSION_MANAGE && oid == UCI_MSG_SESSION_SET_APP_CONFIG && (payloadLength >= 4))
+                if (payloadLength >= 4)
                 {
-                    int paydex = 2;
-                    int num_parms = payload[1];
-                    int parm_num = 1;
-
-                    while (parm_num <= num_parms && paydex < payloadLength)
+                    if (
+                            (gid == UCI_GID_SESSION_MANAGE && oid == UCI_MSG_SESSION_SET_APP_CONFIG)
+                         || (gid == UCI_GID_VENDOR && oid == UCI_MSG_SESSION_VENDOR_SET_APP_CONFIG)
+                    )
                     {
-                        LOG_ERR("Parm %d: 0x%02X: %s", parm_num, payload[paydex], UWBexplainStatus(payload[paydex + 1]));
-                        paydex += 2;
-                        parm_num++;
+                        int paydex = 2;
+                        int num_parms = payload[1];
+                        int parm_num = 1;
+
+                        while (parm_num <= num_parms && paydex < payloadLength)
+                        {
+                            LOG_ERR("Parm %d: 0x%02X: %s", parm_num, payload[paydex], UWBexplainStatus(payload[paydex + 1]));
+                            paydex += 2;
+                            parm_num++;
+                        }
                     }
                 }
             }
@@ -2142,6 +2159,9 @@ void UWBinitSessionParameters(uwb_config_params_t *config, uwb_session_params_t 
     params->respondersNodes      = config->respondersNodes;
     params->macMode              = config->macMode;
 
+    params->dst_mac_addr[1]     = 0x8c;
+    params->dst_mac_addr[0]     = 0x00;
+
     params->stsIndex0       = 0;
     params->uwbTime0        = 0;
     params->syncCodeIndex   = 0;
@@ -2182,8 +2202,6 @@ int UWBinit(session_state_callback_t inSessionStateCallback,
     mUWB.do_get_device_info_and_caps = true;
 
     mUWB.stopOnRangeErrors = 0;
-
-    mUWB.next_session_id = 0xFEEDFACD;
 
     _uwb_reset();
 

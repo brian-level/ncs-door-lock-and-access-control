@@ -97,6 +97,7 @@ int AliroUWBbuildAppConfiguration(
     size_t *outBufferCount);
 
 int AliroUWBbuildVendorConfiguration(
+    uwb_session_params_t *params,
     uint32_t sessionIdentifier,
     uint8_t *sessionKey,
     int sessionKeyLength,

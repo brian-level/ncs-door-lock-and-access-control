@@ -203,6 +203,148 @@ exit:
     return ret;
 }
 
+static int _DumpAliroAttributes(const uint8_t *inbuf, const size_t inLength)
+{
+    int ret = -EINVAL;
+    uint8_t attr;
+    uint8_t attrlen;
+    size_t avail = inLength;
+    uint8_t *cursor = (uint8_t*)inbuf;
+    uint32_t u32val;
+    uint16_t u16val;
+    uint8_t u8val;
+
+    require(inbuf && inLength, exit);
+
+    ret = 0;
+
+    while (avail > 1 && ret == 0)
+    {
+        attr = *cursor++;
+        attrlen  = *cursor++;
+        avail -= 2;
+
+        switch (attr)
+        {
+        case ALIRO_ATTR_UWB_CONFIG_ID:
+            ret = _ALIRO_GET_UINT16(&cursor, &u16val, &avail);
+            require_noerr(ret, exit);
+            LOG_INF("ALIRO UWB_CONFIG_ID: 0x%04x", u16val);
+            break;
+
+        case ALIRO_ATTR_UWB_PULSE_SHAPE_COMBO:
+            ret = _ALIRO_GET_UINT8(&cursor, &u8val, &avail);
+            require_noerr(ret, exit);
+            LOG_INF("ALIRO UWB_PULSE_SHAPE_COMBO: 0x%02x", u8val);
+            break;
+
+        case ALIRO_ATTR_UWB_SESSION_ID:
+            ret = _ALIRO_GET_UINT32(&cursor, &u32val, &avail);
+            require_noerr(ret, exit);
+            LOG_INF("ALIRO UWB_SESSION_ID: 0x%08x", u32val);
+            break;
+
+        case ALIRO_ATTR_UWB_CHANNEL_BITMASK:
+            ret = _ALIRO_GET_UINT8(&cursor, &u8val, &avail);
+            require_noerr(ret, exit);
+            LOG_INF("ALIRO UWB_CHANNEL_BITMASK: 0x%02x", u8val);
+            break;
+
+        case ALIRO_ATTR_UWB_RAN_MULTIPLIER:
+            ret = _ALIRO_GET_UINT8(&cursor, &u8val, &avail);
+            require_noerr(ret, exit);
+            LOG_INF("ALIRO UWB_RAN_MULTIPLIER: 0x%02x", u8val);
+            break;
+
+        case ALIRO_ATTR_UWB_SLOT_BITMASK:
+            ret = _ALIRO_GET_UINT8(&cursor, &u8val, &avail);
+            require_noerr(ret, exit);
+            LOG_INF("ALIRO UWB_SLOT_BITMASK: 0x%02x", u8val);
+            break;
+
+        case ALIRO_ATTR_UWB_SYNC_CODE_INDEX_MASK:
+            ret = _ALIRO_GET_UINT32(&cursor, &u32val, &avail);
+            require_noerr(ret, exit);
+            LOG_INF("ALIRO UWB_SYNC_CODE_INDEX_MASK: 0x%08x", u32val);
+            break;
+
+        case ALIRO_ATTR_UWB_SYNC_CODE_INDEX:
+            ret = _ALIRO_GET_UINT8(&cursor, &u8val, &avail);
+            require_noerr(ret, exit);
+            LOG_INF("ALIRO UWB_SYNC_CODE_INDEX: 0x%02x", u8val);
+            break;
+
+        case ALIRO_ATTR_UWB_HOP_CONFIG_BITMASK:
+            ret = _ALIRO_GET_UINT8(&cursor, &u8val, &avail);
+            require_noerr(ret, exit);
+            LOG_INF("ALIRO UWB_HOP_CONFIG_BITMASK: 0x%02x", u8val);
+            break;
+
+        case ALIRO_ATTR_UWB_CHAPS_PER_SLOT:
+            ret = _ALIRO_GET_UINT8(&cursor, &u8val, &avail);
+            require_noerr(ret, exit);
+            LOG_INF("ALIRO UWB_CHAPS_PER_SLOT: 0x%02x", u8val);
+            break;
+
+        case ALIRO_ATTR_UWB_NUM_RESPONDER_NODES:
+            ret = _ALIRO_GET_UINT8(&cursor, &u8val, &avail);
+            require_noerr(ret, exit);
+            LOG_INF("ALIRO UWB_NUM_RESPONDER_NODES: 0x%02x", u8val);
+            break;
+
+        case ALIRO_ATTR_UWB_SLOTS_PER_ROUND:
+            ret = _ALIRO_GET_UINT8(&cursor, &u8val, &avail);
+            require_noerr(ret, exit);
+            LOG_INF("ALIRO UWB_SLOTS_PER_ROUND: 0x%02x", u8val);
+            break;
+
+        case ALIRO_ATTR_UWB_STS_INDEX_0:
+            ret = _ALIRO_GET_UINT32(&cursor, &u32val, &avail);
+            require_noerr(ret, exit);
+            LOG_INF("ALIRO UWB_STS_INDEX_0: 0x%08x", u32val);
+            break;
+
+        case ALIRO_ATTR_UWB_TIME_0:
+            ret = _ALIRO_GET_UINT32(&cursor, &u32val, &avail);
+            require_noerr(ret, exit);
+            LOG_INF("ALIRO UWB_UWB_TIME_0: 0x%08x", u32val);
+            break;
+
+        case ALIRO_ATTR_UWB_HOP_KEY_MODE:
+            ret = _ALIRO_GET_UINT32(&cursor, &u32val, &avail);
+            require_noerr(ret, exit);
+            LOG_INF("ALIRO UWB_HOP_KEY_MODE: 0x%08x", u32val);
+            break;
+
+        case ALIRO_ATTR_UWB_MAC_MODE:
+            ret = _ALIRO_GET_UINT8(&cursor, &u8val, &avail);
+            require_noerr(ret, exit);
+            LOG_INF("ALIRO UWB_MAC_MODE: 0x%02x", u8val);
+            break;
+
+        case ALIRO_ATTR_UWB_VENDOR_SPECIFIC:
+            LOG_HEXDUMP_INF(cursor, attrlen, "UWB_VENDOR_SPECIFIC");
+            avail -= attrlen;
+            cursor += attrlen;
+            ret = 0;
+            break;
+
+        case ALIRO_ATTR_UWB_STATUS:
+            ret = _ALIRO_GET_UINT8(&cursor, &u8val, &avail);
+            LOG_INF("ALIRO UWB_STATUS: 0x%02x", u8val);
+            break;
+
+        default:
+            LOG_ERR("Bad attr %02x", attr);
+            ret = -EINVAL;
+            break;
+        }
+    }
+
+exit:
+    return ret;
+}
+
 static int _SetParamsFromAttributes(uwb_session_params_t *params, const uint8_t *inbuf, const size_t inLength)
 {
     int ret = -EINVAL;
@@ -215,43 +357,16 @@ static int _SetParamsFromAttributes(uwb_session_params_t *params, const uint8_t 
 
     ret = 0;
 
+    if (1)
+    {
+        _DumpAliroAttributes(cursor, avail);
+    }
+
     while (avail > 1 && ret == 0)
     {
         attr = *cursor++;
         attrlen  = *cursor++;
         avail -= 2;
-
-        if (1)
-        {
-            size_t xavail = avail;
-            uint8_t *valpos = cursor;
-            uint8_t u8val = 0;
-            uint16_t u16val = 0;
-            uint32_t attrval = 0;
-
-            switch (attrlen)
-            {
-            case 1:
-                _ALIRO_GET_UINT8(&valpos, &u8val, &xavail);
-                attrval = u8val;
-                break;
-
-            case 2:
-                _ALIRO_GET_UINT16(&valpos, &u16val, &xavail);
-                attrval = u16val;
-                break;
-
-            case 4:
-                _ALIRO_GET_UINT32(&valpos, &attrval, &xavail);
-                break;
-
-            default:
-                attrval = 0;
-                break;
-            }
-
-            LOG_INF("attr %d len %d  val x%08x", attr, attrlen, attrval);
-        }
 
         switch (attr)
         {
@@ -355,6 +470,30 @@ exit:
 // Rest of the bits are reserved for future
 
 static uint8_t AliroUWBhoppingBitmaskToSR150(uint8_t bits)
+{
+    switch (bits)
+    {
+    case ALIRO_HOPPING_CONFIG_NO_HOPPING:
+        return UWB_CCC_HopMask_Disable;
+
+    case ALIRO_HOPPING_CONFIG_CONTINUOUS_HOPPING_MODULO:
+        return UWB_CCC_HopMask_Cont_def;
+
+    case ALIRO_HOPPING_CONFIG_CONTINUOUS_HOPPING_AES:
+        return UWB_CCC_HopMask_Cont_AES;
+
+    case ALIRO_HOPPING_CONFIG_ADAPTIVE_HOPPING_MODULO:
+        return UWB_CCC_HopMask_Adapt_def;
+
+    case ALIRO_HOPPING_CONFIG_ADAPTIVE_HOPPING_AES:
+        return UWB_CCC_HopMask_Adapt_AES;
+
+    default:
+        return 0xFF;
+    }
+}
+
+static uint8_t AliroUWBhoppingModeToSR150(uint8_t bits)
 {
     switch (bits)
     {
@@ -695,13 +834,25 @@ int AliroUWBbuildAppConfiguration(
     parmcount++;
     require_noerr(ret, exit);
 
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_RANGING_PROTOCOL_VER);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, 2);
+    ret |= _UWB_PUT_UINT16(&cursor, &room, 0x0100);
+    parmcount++;
+    require_noerr(ret, exit);
+
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_STS_CONFIG);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, 1);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, 0x01);
+    parmcount++;
+    require_noerr(ret, exit);
+
     ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_PULSESHAPE_COMBO);
     ret |= _UWB_PUT_UINT8(&cursor, &room, 1);
     ret |= _UWB_PUT_UINT8(&cursor, &room, params->pulseShapeCombo);
     parmcount++;
     require_noerr(ret, exit);
-#if 0
-    uint8_t hopping_mode = AliroUWBhoppingBitmaskToSR150(params->hoppingBitmask);
+#if 1
+    uint8_t hopping_mode = AliroUWBhoppingModeToSR150(params->hoppingBitmask);
     ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_HOPPING_MODE);
     ret |= _UWB_PUT_UINT8(&cursor, &room, 1);
     ret |= _UWB_PUT_UINT8(&cursor, &room, hopping_mode);
@@ -731,7 +882,7 @@ int AliroUWBbuildAppConfiguration(
     ret |= _UWB_PUT_UINT32(&cursor, &room, params->stsIndex0);
     parmcount++;
     require_noerr(ret, exit);
-#if 1
+#if 0
     ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_HOP_MODE_KEY);
     ret |= _UWB_PUT_UINT8(&cursor, &room, 4);
     ret |= _UWB_PUT_UINT32(&cursor, &room, params->hopModeKey);
@@ -739,11 +890,13 @@ int AliroUWBbuildAppConfiguration(
     require_noerr(ret, exit);
 #endif
 
+#if 0
     ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_ALIRO_MAC_MODE);
     ret |= _UWB_PUT_UINT8(&cursor, &room, 1);
     ret |= _UWB_PUT_UINT8(&cursor, &room, params->macMode);
     parmcount++;
     require_noerr(ret, exit);
+#endif
 
 #if 0
     ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_STATIC_STS_IV);
@@ -752,13 +905,14 @@ int AliroUWBbuildAppConfiguration(
     parmcount++;
     require_noerr(ret, exit);
 #endif
+#if 0
     uint8_t vendor_id[] = { 8, 7 };
     ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_VENDOR_ID);
     ret |= _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_LEN_VENDOR_ID);
     ret |= _UWB_PUT_DATA(&cursor, &room, vendor_id, UCI_PARAM_LEN_VENDOR_ID);
     parmcount++;
     require_noerr(ret, exit);
-
+#endif
     ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_PREAMBLE_CODE_INDEX);
     ret |= _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_LEN_PREAMBLE_CODE_INDEX);
     ret |= _UWB_PUT_UINT8(&cursor, &room, params->syncCodeIndex);
@@ -777,24 +931,29 @@ int AliroUWBbuildAppConfiguration(
     parmcount++;
     require_noerr(ret, exit);
 
-    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_DST_MAC_ADDRESS);
-    ret |= _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_LEN_DEST_MAC_ADDRESS);
-    ret |= _UWB_PUT_DATA(&cursor, &room, params->dst_mac_addr, UCI_PARAM_LEN_DEST_MAC_ADDRESS);
-    parmcount++;
-    require_noerr(ret, exit);
-
     ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_DEVICE_ROLE);
     ret |= _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_LEN_DEVICE_ROLE);
     ret |= _UWB_PUT_UINT8(&cursor, &room, params->device_role);
     parmcount++;
     require_noerr(ret, exit);
-
+#if 1
+    if (params->device_role != UWB_DeviceRole_Responder)
+    {
+        ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_DST_MAC_ADDRESS);
+        ret |= _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_LEN_DEST_MAC_ADDRESS);
+        ret |= _UWB_PUT_DATA(&cursor, &room, params->dst_mac_addr, UCI_PARAM_LEN_DEST_MAC_ADDRESS);
+        parmcount++;
+        require_noerr(ret, exit);
+    }
+#endif
+#if 1
     ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_MULTI_NODE_MODE);
     ret |= _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_LEN_MULTI_NODE_MODE);
     ret |= _UWB_PUT_UINT8(&cursor, &room, 0);
     parmcount++;
     require_noerr(ret, exit);
-
+#endif
+#if 0
     ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_MAC_ADDRESS_MODE);
     ret |= _UWB_PUT_UINT8(&cursor, &room, 1 /*UCI_PARAM_LEN_MAC_ADDRESS_MODE*/);
     ret |= _UWB_PUT_UINT8(&cursor, &room, 0);
@@ -806,16 +965,10 @@ int AliroUWBbuildAppConfiguration(
     ret |= _UWB_PUT_UINT8(&cursor, &room, 1);
     parmcount++;
     require_noerr(ret, exit);
-
+#endif
     ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_DEVICE_MAC_ADDRESS);
     ret |= _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_LEN_DEVICE_MAC_ADDRESS);
     ret |= _UWB_PUT_DATA(&cursor, &room, params->our_mac_addr, UCI_PARAM_LEN_DEVICE_MAC_ADDRESS);
-    parmcount++;
-    require_noerr(ret, exit);
-
-    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_RANGING_ROUND_USAGE);
-    ret |= _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_LEN_RANGING_METHOD);
-    ret |= _UWB_PUT_UINT8(&cursor, &room, 2);
     parmcount++;
     require_noerr(ret, exit);
 
@@ -825,6 +978,13 @@ int AliroUWBbuildAppConfiguration(
     parmcount++;
     require_noerr(ret, exit);
 
+#if 1
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_RANGING_ROUND_USAGE);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_LEN_RANGING_METHOD);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, 2);
+    parmcount++;
+    require_noerr(ret, exit);
+#endif
 #if 0
     ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_RANGING_ROUND_CONTROL);
     ret |= _UWB_PUT_UINT8(&cursor, &room, 1/*UCI_PARAM_LEN_RANGING_ROUND_CONTROL*/);
@@ -832,6 +992,67 @@ int AliroUWBbuildAppConfiguration(
     parmcount++;
     require_noerr(ret, exit);
 #endif
+#if 1
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_SESSION_INFO_NTF);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, 1);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, 1);
+    parmcount++;
+    require_noerr(ret, exit);
+#endif
+
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_MAC_FCS_TYPE);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, 1);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, 0);
+    parmcount++;
+    require_noerr(ret, exit);
+
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_RFRAME_CONFIG);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, 1);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, 3);
+    parmcount++;
+    require_noerr(ret, exit);
+
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_CCC_CONFIG_QUIRKS);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, 1);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, 1);
+    parmcount++;
+    require_noerr(ret, exit);
+
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_FAR_PROXIMITY_CONFIG);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, 2);
+    ret |= _UWB_PUT_UINT16(&cursor, &room, 0x4e20);
+    parmcount++;
+    require_noerr(ret, exit);
+
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_NEAR_PROXIMITY_CONFIG);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, 2);
+    ret |= _UWB_PUT_UINT16(&cursor, &room, 0x0000);
+    parmcount++;
+    require_noerr(ret, exit);
+
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_MAX_NUMBER_OF_MEASUREMENTS);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, 2);
+    ret |= _UWB_PUT_UINT16(&cursor, &room, 0xffff);
+    parmcount++;
+    require_noerr(ret, exit);
+
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_URSK_TTL);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, 2);
+    ret |= _UWB_PUT_UINT16(&cursor, &room, 0x02d0);
+    parmcount++;
+    require_noerr(ret, exit);
+
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_MAX_RR_RETRY);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, 2);
+    ret |= _UWB_PUT_UINT16(&cursor, &room, 0x00);
+    parmcount++;
+    require_noerr(ret, exit);
+
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_PARAM_ID_RESPONDER_SLOT_INDEX);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, 1);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, 0);
+    parmcount++;
+    require_noerr(ret, exit);
 
     // back annotate length
     datalen = cursor - lenpos - 1;
@@ -851,6 +1072,7 @@ exit:
 }
 
 int AliroUWBbuildVendorConfiguration(
+    uwb_session_params_t *params,
     uint32_t sessionIdentifier,
     uint8_t *sessionKey,
     int sessionKeyLength,
@@ -889,14 +1111,22 @@ int AliroUWBbuildVendorConfiguration(
     ret |= _UWB_PUT_UINT8(&cursor, &room, parmcount);
     require_noerr(ret, exit);
 
+#if 1
+    ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_VENDOR_PARAM_ID_CSA_MAC_MODE);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, 1);
+    ret |= _UWB_PUT_UINT8(&cursor, &room, params->macMode);
+    parmcount++;
+    require_noerr(ret, exit);
+#endif
+
     ret  = _UWB_PUT_UINT8(&cursor, &room, UCI_VENDOR_PARAM_ID_WRAPPED_RDS);
     ret |= _UWB_PUT_UINT8(&cursor, &room, CCC_WRAPPED_RDS_LEN);
 
     if (sessionKeyLength == CCC_SESSION_KEY_LEN)
     {
         /** Plain URSK passed, form the Wrapped RDS */
-        /* SessionID (4 bytes) */
-        ret = _UWB_PUT_UINT32(&cursor, &room, sessionIdentifier);
+        /* SessionID (4 bytes) (note its byte-swapped vs everything else!) */
+        ret = _ALIRO_PUT_UINT32(&cursor, &room, sessionIdentifier);
         require_noerr(ret, exit);
 
         /* Random Key (12 bytes) */

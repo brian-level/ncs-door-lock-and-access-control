@@ -88,7 +88,7 @@ const uint8_t UWB_CORE_SET_ANTENNAS_DEFINE_1F1B[] = {0x20, 0x04, 0x00, 0x1F,
 const uint32_t UWB_CORE_SET_ANTENNAS_DEFINE_1F1B_SIZE = sizeof(UWB_CORE_SET_ANTENNAS_DEFINE_1F1B);
 
 // Init ranging session
-uint8_t UWB_SESSION_INIT_RANGING[] = {0x21, 0x00, 0x00, 0x05, /* 4-byte session_id: */ 0x00, 0x00, 0x00, 0x00, 0x00};
+uint8_t UWB_SESSION_INIT_RANGING[] = {0x21, 0x00, 0x00, 0x05, /* 4-byte session_id: */ 0x00, 0x00, 0x00, 0x00, /* 1 byte sess type */ 0x00};
 const uint32_t UWB_SESSION_INIT_RANGING_SIZE = sizeof(UWB_SESSION_INIT_RANGING);
 
 // Set Application configurations parameters
@@ -141,7 +141,7 @@ uint8_t UWB_SESSION_SET_APP_CONFIG[] = {0x21, 0x03, 0x00, 0x72, /* 4-byte sessio
                                        };
 const uint32_t UWB_SESSION_SET_APP_CONFIG_SIZE = sizeof(UWB_SESSION_SET_APP_CONFIG);
 
-#if 1
+#if 0
 uint8_t UWB_SESSION_SET_XAPP_CONFIG[] = {0x21, 0x03, 0x00, 30, /* 4-byte session_id: */ 0x00, 0x00, 0x00, 0x00,
                                          8,                                               // Number of parameters
                                          0x03, 0x01, 0x00,                                 // MULTI_NODE_MODE

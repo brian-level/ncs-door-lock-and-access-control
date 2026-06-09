@@ -492,6 +492,83 @@ exit:
     return ret;
 }
 
+int UWBcccRangeData(const uint8_t inAntennaSel, const uint8_t *inData, const int inCount)
+{
+    int ret = -EINVAL;
+    ccc_range_data_t ccc_data;
+    uint8_t *cursor = (uint8_t *)inData;
+
+    double distance;
+    double azimuth;
+    double elevation;
+
+    int32_t rssi;
+
+    int i;
+
+    require(inData, exit);
+    require(inCount >= 23, exit);
+
+    ccc_data.session_id                = _UWB_GET_UINT32(&cursor);
+    ccc_data.status                    = _UWB_GET_UINT8(&cursor);
+    ccc_data.sts_index                 = _UWB_GET_UINT32(&cursor);
+    ccc_data.rr_index                  = _UWB_GET_UINT16(&cursor);
+    ccc_data.block_index               = _UWB_GET_UINT16(&cursor);
+    ccc_data.distance                  = _UWB_GET_UINT16(&cursor);
+    ccc_data.fom_anchor                = _UWB_GET_UINT8(&cursor);
+    ccc_data.fom_initiator             = _UWB_GET_UINT8(&cursor);
+
+
+    for (i = 0; i < 8; i++)
+    {
+        ccc_data.ccm_tag[i] = _UWB_GET_UINT8(&cursor);
+    }
+
+    ccc_data.AoA_azimuth                = (int16_t)_UWB_GET_UINT16(&cursor);
+    ccc_data.AoA_azimuth_fom            = _UWB_GET_UINT8(&cursor);
+    ccc_data.AoA_elevation              = (int16_t)_UWB_GET_UINT16(&cursor);
+    ccc_data.AoA_elevation_fom          = _UWB_GET_UINT8(&cursor);
+
+    ccc_data.ant_pair                   = _UWB_GET_UINT32(&cursor);
+
+    ccc_data.nPDoA                      = _UWB_GET_UINT8(&cursor);
+
+    for (i = 0; i < ccc_data.nPDoA; i++)
+    {
+         _UWB_GET_UINT32(&cursor);
+    }
+
+    ccc_data.nRSSI                      = _UWB_GET_UINT8(&cursor);
+
+    rssi = 0;
+
+    if (ccc_data.nRSSI > 0)
+    {
+        for (i = 0; i < ccc_data.nRSSI; i++)
+        {
+             rssi += (int32_t)_UWB_GET_UINT32(&cursor);
+        }
+
+        rssi /= ccc_data.nRSSI;
+    }
+
+    printf("          Range %08X distance=%02u\n",
+            ccc_data.session_id, ccc_data.distance);
+
+    distance = (double)ccc_data.distance / (double)100.0;
+    // angles are signed in 9.7 format
+    azimuth = (double)(int)ccc_data.AoA_azimuth / (double)(1 << 7);
+    elevation = (double)(int)ccc_data.AoA_elevation / (double)(1 << 7);
+#if UWB_ORIENT_HORIZ
+    _DisplayRange(ccc_data.session_id, inAntennaSel, 0, distance, 0, 0, 0, 0, 0);
+#else
+    _DisplayRange(ccc_data.session_id, inAntennaSel, 0, distance, 0, 0, 0, 0, 0);
+#endif
+    ret = 0;
+exit:
+    return ret;
+}
+
 int UWBrangeInit(
     const bool inHaveDisplay,
     const int16_t inRSSIoffset[2])

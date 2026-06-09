@@ -16,18 +16,10 @@ LOG_MODULE_REGISTER(hbci);
 #define DUMP_PACKETS 0
 
 // firmware image
-#if 1 // newer Aliro image
-#include "H1_IOT.SR150_SMARTHOME_MAINLINE_PROD_FW_EE.40.B2_0a13ad6308fafdc0.h"
+#include "ALIRO_IOT_SR150_FW_v46.43.14.h"
 
-#define heliosEncryptedMainlineFwImage  H1_IOT_SR150_SMARTHOME_MAINLINE_PROD_FW_EE_40_B2_0a13ad6308fafdc0_bin
-#define heliosEncryptedMainlineFwImageLen H1_IOT_SR150_SMARTHOME_MAINLINE_PROD_FW_EE_40_B2_0a13ad6308fafdc0_bin_len
-#else
-#include "H1_IOT.SR150_MAINLINE_PROD_FW_46.41.06_0052bbfed983a1f1.h"
-
-#define heliosEncryptedMainlineFwImage  H1_IOT_SR150_MAINLINE_PROD_FW_46_41_06_0052bbfed983a1f1_bin
-#define heliosEncryptedMainlineFwImageLen H1_IOT_SR150_MAINLINE_PROD_FW_46_41_06_0052bbfed983a1f1_bin_len
-#endif
-
+#define heliosEncryptedMainlineFwImageLen g_ALIRO_IOT_SR150_FW_v46z
+#define heliosEncryptedMainlineFwImage  g_ALIRO_IOT_SR150_FW_v46
 typedef struct
 {
     uint8_t *data;

@@ -419,11 +419,6 @@ Reserved for Proprietary use: 0xE3-0xFF
 #define UCI_STATUS_DATA_TRANSFER_ERROR 0x90
 #define UCI_STATUS_NO_CREDIT_AVAILABLE 0x00
 #define UCI_STATUS_CREDIT_AVAILABLE    0x01
-/*************************************************
-* Device Role config
-**************************************************/
-#define UWB_CONTROLLER 0x00
-#define UWB_CONTROLEE  0x01
 
 /*************************************************
 * Ranging Method config

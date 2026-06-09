@@ -75,6 +75,32 @@ typedef struct
 }
 range_data_t;
 
+// see NCP_UCI_CCC_Specification_v1.9.pdf
+typedef struct
+{
+    uint32_t  session_id;
+    uint8_t   status;
+    uint32_t  sts_index;
+    uint16_t  rr_index;
+    uint16_t  block_index;
+    uint16_t  distance;
+    uint8_t   fom_anchor;
+    uint8_t   fom_initiator;
+    uint8_t   ccm_tag[8];
+
+    int16_t   AoA_azimuth;
+    int8_t    AoA_azimuth_fom;
+    int16_t   AoA_elevation;
+    int8_t    AoA_elevation_fom;
+
+    uint32_t  ant_pair;
+
+    uint8_t   nPDoA;
+    uint8_t   nRSSI;
+}
+ccc_range_data_t;
+
+int UWBcccRangeData(const uint8_t inAntennaSel, const uint8_t *inData, const int inCount);
 int UWBrangeData(const uint8_t inAntennaSel, const uint8_t *inData, const int inCount);
 int UWBrangeInit(const bool inHaveDisplay, const int16_t inRSSIoffset[2]);
 

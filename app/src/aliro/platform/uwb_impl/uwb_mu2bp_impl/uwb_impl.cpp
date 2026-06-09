@@ -250,6 +250,7 @@ AliroError UltraWideBandImpl::_HandleBleMessage(const uint8_t *data, size_t leng
 
             // create a vedor app config message
             ret = AliroUWBbuildVendorConfiguration(
+                        &connection->sessionParameters,
                         connection->sessionIdentifier,
                         connection->ursk.data(),
                         sizeof(connection->ursk),
@@ -367,13 +368,13 @@ AliroError UltraWideBandImpl::AddSession(SessionContextHandle sessionHandle)
 #if 0 // be the controller
     newCtx->sessionParameters.device_type = UWB_DeviceType_Controller;
     newCtx->sessionParameters.device_role = UWB_DeviceRole_Initiator;
-    newCtx->sessionParameters.our_mac_addr[0] = 0x11;
-    newCtx->sessionParameters.our_mac_addr[1] = 0x11;
+    newCtx->sessionParameters.our_mac_addr[0] = 0x8c;
+    newCtx->sessionParameters.our_mac_addr[1] = 0x00;
 #else //  (reader app is controllee for Aliro)
-    newCtx->sessionParameters.device_type = UWB_DeviceType_Controlee;
+    newCtx->sessionParameters.device_type = /*UWB_DeviceType_CCC_Controllee;*/ UWB_DeviceType_Controlee;
     newCtx->sessionParameters.device_role = UWB_DeviceRole_Responder;
-    newCtx->sessionParameters.our_mac_addr[0] = 0x22;
-    newCtx->sessionParameters.our_mac_addr[1] = 0x22;
+    newCtx->sessionParameters.our_mac_addr[0] = 0x00;
+    newCtx->sessionParameters.our_mac_addr[1] = 0x8d;
 #endif
     LOG_DBG("New uwbCtx %08X for BLE Conn %08X\n",
             (uint32_t)(uintptr_t)newCtx,
