@@ -80,6 +80,8 @@ typedef enum
     UWB_IS_APP_CONFIG_SESSION,
     UWB_IS_START_SESSION,
     UWB_IS_ANTENNA_SELECT_SESSION,
+    UWB_IS_SUSPEND_SESSION,
+    UWB_IS_RESUME_SESSION,
     UWB_IS_STOP_SESSION,
     UWB_IS_DEINIT_SESSION,
     UWB_IS_WAIT_RSP,
@@ -95,6 +97,8 @@ typedef enum
     UWB_SS_IDLE,            ///< idle
     UWB_SS_STARTING,        ///< app-config complete
     UWB_SS_STARTED,         ///< active
+    UWB_SS_SUSPENDING,      ///< suspend requested
+    UWB_SS_SUSPENDED,       ///< suspended
     UWB_SS_STOPPING,        ///< stop requested
     UWB_SS_STOPPED,         ///< stopped
 }
@@ -189,6 +193,7 @@ typedef struct
     const void  *ble_conn_ctx;
     uint32_t    session_id;
     uint32_t    session_handle;
+    uint32_t    sts_index;
     uint16_t    range_errors;
     uint8_t     flop_counter;
     uint8_t     current_antenna_sel;
@@ -359,7 +364,8 @@ int UWBstart(
     const uint8_t *inVendorConfigData,
     const int inVendorConfigDataLength);
 
-int UWBstop(const void *inConnectionHandle);
+int UWBstopSession(uwb_session_t *inSession, bool inDestroy);
+int UWBstopConnection(const void *inConnectionHandle);
 
 bool UWBready(void);
 

@@ -662,7 +662,7 @@ static uwb_session_t *_uwb_alloc_session(const uint32_t session_id, const void *
             mUWB.sessions[ i ].range_errors = 0;
             mUWB.sessions[ i ].flop_counter = 0;
 
-            LOG_DBG("Session %08X Allocated for conn %08X",
+            LOG_INF("Session %08X Allocated for conn %08X",
                     (uint32_t)(uintptr_t)&mUWB.sessions[ i ],
                     (uint32_t)(uintptr_t)ble_conn_ctx);
             break;
@@ -756,7 +756,7 @@ static int _uwb_free_session(uint32_t const session_handle)
 
     if (session)
     {
-        LOG_DBG("Session %08X  ctx %08X, handle %08X deallocated",
+        LOG_INF("Session %08X  ctx %08X, handle %08X deallocated",
                 (uint32_t)(uintptr_t)session,
                 (uint32_t)(uintptr_t)session->ble_conn_ctx,
                 session_handle);
@@ -796,6 +796,11 @@ static int _uwb_set_session_state(uwb_session_t *session, const uint8_t sess_sta
     if (sess_reason)
     {
         reason_str = _uwb_explain_reason(sess_reason);
+    }
+
+    if (mUWB.session_callback)
+    {
+        mUWB.session_callback(session, sess_state, sess_reason);
     }
 
     switch (sess_state)
@@ -1032,15 +1037,10 @@ static int _uwb_initialize(
                 sess_state  = payload[4];
                 sess_reason = payload[5];
 
-                LOG_DBG("Session %08X state %02X %02X", session_handle, sess_state, sess_reason);
+                LOG_INF("NTF Session %08X state %02X %02X", session_handle, sess_state, sess_reason);
 
                 session = _uwb_find_session_by_handle(session_handle);
                 _uwb_set_session_state(session, sess_state, sess_reason);
-
-                if (mUWB.session_callback)
-                {
-                    mUWB.session_callback(session, sess_state, sess_reason);
-                }
 
                 UWB_NEXT_STATE(UWB_IS_READY);
             }
@@ -1173,6 +1173,16 @@ static int _uwb_initialize(
         haveMessage = false;
     }
 
+    {
+    static uwb_init_state_t s_last_init_state = 0;
+
+    if (mUWB.init_state != s_last_init_state)
+    {
+        LOG_INF("-- new state %d", mUWB.init_state);
+        s_last_init_state = mUWB.init_state;
+    }
+    }
+
     if (mUWB.init_state != UWB_IS_WAIT_RSP && mUWB.command_set_count)
     {
         if (mUWB.command_set_state < mUWB.command_set_count)
@@ -1199,6 +1209,11 @@ static int _uwb_initialize(
             {
                 session = &mUWB.sessions[ i ];
 
+                if (session->session_state != UWB_SS_INACTIVE)
+                {
+                    LOG_INF("session %08X state %d", (uint32_t)session, session->session_state);
+                }
+
                 switch (session->session_state)
                 {
                 case UWB_SS_STOPPED:
@@ -1209,6 +1224,11 @@ static int _uwb_initialize(
                 case UWB_SS_STOPPING:
                     LOG_INF("Stopping session %08X", session->session_handle);
                     UWB_NEXT_STATE(UWB_IS_STOP_SESSION);
+                    break;
+
+                case UWB_SS_SUSPENDING:
+                    LOG_INF("Suspending session %08X", session->session_handle);
+                    UWB_NEXT_STATE(UWB_IS_SUSPEND_SESSION);
                     break;
 
                 case UWB_SS_STARTING:
@@ -1222,7 +1242,6 @@ static int _uwb_initialize(
                     break;
 
                 case UWB_SS_CREATED:
-                    ;
                     LOG_INF("Initializing session %08X", session->session_handle);
                     UWB_NEXT_STATE(UWB_IS_INIT_SESSION);
                     break;
@@ -1555,6 +1574,17 @@ static int _uwb_initialize(
             UWB_NEXT_STATE(UWB_IS_READY);
             break;
 
+        case UWB_IS_RESUME_SESSION:
+            mUWB.command_set_count = 0;
+            mUWB.command_size[mUWB.command_set_count] = UWB_RANGE_RESUME_SIZE;
+            mUWB.commands[mUWB.command_set_count++] = _uwb_add_session_handle(session, UWB_RANGE_RESUME);
+            // second dword in command is resumed STS index which must be > last STS index used
+            session->sts_index++;
+            memcpy(UWB_RANGE_RESUME + UWB_SESSION_ID_OFFSET_IN_CMD + 4, &session->sts_index, sizeof(uint32_t));
+            mUWB.command_set_state = 0;
+            break;
+
+        case UWB_IS_SUSPEND_SESSION:
         case UWB_IS_STOP_SESSION:
             mUWB.command_set_count = 0;
             mUWB.command_size[mUWB.command_set_count] = UWB_RANGE_STOP_SIZE;
@@ -1571,11 +1601,7 @@ static int _uwb_initialize(
             // for some reason chip doesn't send a notification for deinit
             // so announce it ourselves by-hand while we know what session it is
             //
-            if (mUWB.session_callback)
-            {
-                mUWB.session_callback(session, UWB_SESSION_DEINITIALIZED, 0);
-            }
-
+            // this will free session as well
             _uwb_set_session_state(session, UWB_SESSION_DEINITIALIZED, 0);
             break;
 
@@ -1760,11 +1786,16 @@ static int _uwb_initialize(
                         break;
 
                     case UWB_IS_START_SESSION:
+                    case UWB_IS_RESUME_SESSION:
                         // after a start-session, need to wait for active
                         // notification to ensure we started it ok which will
                         // advance session state
                         //
                         UWB_NEXT_STATE(UWB_IS_WAIT_NTF);
+                        mUWB.next_init_state = UWB_IS_READY;
+                        break;
+
+                    case UWB_IS_SUSPEND_SESSION:
                         mUWB.next_init_state = UWB_IS_READY;
                         break;
 
@@ -1775,7 +1806,8 @@ static int _uwb_initialize(
                     case UWB_IS_STOP_SESSION:
                         // wait for session status to go idle or less to de-init
                         UWB_NEXT_STATE(UWB_IS_WAIT_NTF);
-                        mUWB.next_init_state = UWB_IS_READY;
+                        LOG_INF("session was stopped, wait for ntf then de-init");
+                        mUWB.next_init_state = UWB_IS_DEINIT_SESSION;
                         break;
 
                     case UWB_IS_DEINIT_SESSION:
@@ -1835,6 +1867,14 @@ static int _uwb_initialize(
             break;
 
         default:
+            if (session)
+            {
+                LOG_WRN("wierd state %d", mUWB.init_state);
+            }
+            else
+            {
+                LOG_WRN("No session, bad state %d", mUWB.init_state);
+            }
             // shouldn't get here
             UWB_NEXT_STATE(UWB_IS_READY);
             mUWB.state = UWB_SESSION;
@@ -1851,14 +1891,11 @@ void _uwb_reset(void)
 
     // callback for any active sessions with connections
     //
-    if (mUWB.session_callback)
+    for (i = 0; i < UWB_MAX_SESSIONS; i++)
     {
-        for (i = 0; i < UWB_MAX_SESSIONS; i++)
+        if (mUWB.sessions[i].session_state != UWB_SS_INACTIVE)
         {
-            if (mUWB.sessions[i].session_state != UWB_SS_INACTIVE)
-            {
-                mUWB.session_callback(&mUWB.sessions[i], UWB_SESSION_DEINITIALIZED, 0);
-            }
+            _uwb_set_session_state(&mUWB.sessions[i], UWB_SESSION_DEINITIALIZED, 0);
         }
     }
 
@@ -1947,24 +1984,25 @@ exit:
     return ret;
 }
 
-int UWBstop(const void *inConnectionHandle)
+int UWBstopSession(uwb_session_t *inSession, bool inDestroy)
 {
     int ret = -EINVAL;
 
     if (mUWB.state != UWB_IDLE)
     {
-        uwb_session_t *session;
-
-        if (inConnectionHandle)
+        if (inSession)
         {
-            session = _uwb_find_session_by_connection(inConnectionHandle);
-
-            if (session)
+            if (inDestroy)
             {
-                session->session_state = UWB_SS_STOPPING;
-                LOG_INF("Stopping session %08X", session->session_handle);
-                ret = 0;
+                inSession->session_state = UWB_SS_STOPPING;
+                LOG_INF("StopSession %08X", inSession->session_handle);
             }
+            else
+            {
+                inSession->session_state = UWB_SS_SUSPENDING;
+                LOG_INF("SuspendSession %08X", inSession->session_handle);
+            }
+            ret = 0;
         }
         else
         {
@@ -1973,7 +2011,7 @@ int UWBstop(const void *inConnectionHandle)
                 if (mUWB.sessions[i].session_state != UWB_SS_INACTIVE)
                 {
                     mUWB.sessions[i].session_state = UWB_SS_STOPPING;
-                    LOG_INF("Stopping session %08X", mUWB.sessions[i].session_handle);
+                    LOG_INF("StopSession %08X", mUWB.sessions[i].session_handle);
                 }
             }
 
@@ -1986,6 +2024,28 @@ int UWBstop(const void *inConnectionHandle)
     }
 
     TimeSignalApplicationEvent();
+    return ret;
+}
+
+int UWBstopConnection(const void *inConnectionHandle)
+{
+    int ret = -EINVAL;
+    uwb_session_t *session;
+
+    if (inConnectionHandle)
+    {
+        session = _uwb_find_session_by_connection(inConnectionHandle);
+
+        if (session)
+        {
+            ret = UWBstopSession(session, true);
+        }
+    }
+    else
+    {
+        ret = UWBstopSession(NULL, true);
+    }
+
     return ret;
 }
 
@@ -2072,7 +2132,7 @@ int UWBslice(uint32_t *delay)
                 // just waiting for range data, no need to loop fast, but poll at
                 // 1/2 the range interval in case missed irq?
                 //
-                *delay = 40;
+                *delay = 20;
             }
             else
             {
@@ -2082,7 +2142,7 @@ int UWBslice(uint32_t *delay)
 
             // check state transition timer. if it expires, reset states
             //
-            if (mUWB.init_state != UWB_IS_READY)
+            if (mUWB.init_state != UWB_IS_READY && mUWB.init_state != UWB_IS_DEINIT_SESSION)
             {
                 volatile uint64_t now = k_uptime_get();
 

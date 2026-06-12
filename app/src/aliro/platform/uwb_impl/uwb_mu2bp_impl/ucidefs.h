@@ -202,10 +202,12 @@
 
 #define UCI_MSG_SESSION_INFO_NTF                   0x00
 #define UCI_MSG_RANGE_CCC_DATA_NTF                 0x20
+#define UCI_MSG_RANGE_RESUME                       0x21
 #define UCI_MSG_SESSION_DATA_TRANSFER_PHASE_CONFIG 0x0E
 
 #define UCI_MSG_RANGE_START_CMD_SIZE               0x04
 #define UCI_MSG_RANGE_STOP_CMD_SIZE                0x04
+#define UCI_MSG_RANGE_RESUME_CMD_SIZE              0x08
 #define UCI_MSG_RANGE_INTERVAL_UPDATE_REQ_CMD_SIZE 0x06
 #define UCI_MSG_RANGE_GET_COUNT_CMD_SIZE           0x04
 

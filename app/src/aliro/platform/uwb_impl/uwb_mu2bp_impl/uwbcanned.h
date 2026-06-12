@@ -53,6 +53,8 @@ extern       uint8_t UWB_RANGE_START[];
 extern const uint32_t UWB_RANGE_START_SIZE;
 extern       uint8_t UWB_RANGE_STOP[];
 extern const uint32_t UWB_RANGE_STOP_SIZE;
+extern       uint8_t UWB_RANGE_RESUME[];
+extern const uint32_t UWB_RANGE_RESUME_SIZE;
 extern       uint8_t UWB_SESSION_DEINIT[];
 extern const uint32_t UWB_SESSION_DEINIT_SIZE;
 extern       uint8_t UWB_SET_CALIBRATION_TX_POWER_CH5[];

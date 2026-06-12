@@ -176,7 +176,7 @@ static int _SessionStateCallback(uwb_session_t *session, uint8_t state, uint8_t 
 
             // make sure underlying session is stopped for sure
             //
-            UWBstop(connection->conn_ctx);
+            UWBstopConnection(connection->conn_ctx);
         }
 
         connection->session_state = SS_INACTIVE;
@@ -608,7 +608,7 @@ static int _CmdStart(const struct shell *shell, size_t argc, char **argv)
 
 static int _CmdStop(const struct shell *shell, size_t argc, char **argv)
 {
-    int ret = UWBstop(NULL);
+    int ret = UWBstopSession(NULL, true);
 
     return ret;
 }

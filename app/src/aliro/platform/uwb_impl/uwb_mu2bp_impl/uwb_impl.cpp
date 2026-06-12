@@ -76,6 +76,16 @@ int UltraWideBandImpl::SessionStateChanged(uwb_session_t *session, uint8_t state
 
     session_handle = session->session_handle;
 
+    /* RangingSessionState
+    Uninitialized = 0x00,
+    Initialized,
+    Idle,
+    Ranging,
+    RangingSuspended,
+    RangingResumed,
+    Destroyed,
+    */
+
     switch (state)
     {
     case UWB_SESSION_INITIALIZED:
@@ -84,9 +94,10 @@ int UltraWideBandImpl::SessionStateChanged(uwb_session_t *session, uint8_t state
         {
             connection->uwbSession = session;
             connection->session_state = SS_INIT;
+
+            VerifyAndCall(mCallbacks.mRangingSessionStateChanged, connection->sessionHandle,
+                      RangingSessionState::Initialized);
         }
-        VerifyAndCall(mCallbacks.mRangingSessionStateChanged, connection->sessionHandle,
-                  RangingSessionState::Initialized);
         break;
 
     case UWB_SESSION_DEINITIALIZED:
@@ -94,6 +105,9 @@ int UltraWideBandImpl::SessionStateChanged(uwb_session_t *session, uint8_t state
         if (connection)
         {
             connection->session_state = SS_OVER;
+
+            VerifyAndCall(mCallbacks.mRangingSessionStateChanged, connection->sessionHandle,
+                      RangingSessionState::Uninitialized);
         }
         break;
 
@@ -395,8 +409,12 @@ void UltraWideBandImpl::RemoveSession(struct uwbSessionContext *sessionCtx)
                    LOG_WRN("Session doesn't exist"));
     }
 
-    // TOOD - clean up uwb side
-    //DestroySession(sessionCtx);
+    if (sessionCtx && sessionCtx->uwbSession)
+    {
+        UWBstopSession(sessionCtx->uwbSession, true);
+        sessionCtx->uwbSession = NULL;
+    }
+
     delete sessionCtx;
 }
 
@@ -412,8 +430,12 @@ void UltraWideBandImpl::RemoveAllSessions()
             sessionCtx = CONTAINER_OF(node, struct uwbSessionContext, mSessionContextNode);
         }
 
-        // TODO
-        //DestroySession(sessionCtx);
+        if (sessionCtx && sessionCtx->uwbSession)
+        {
+            UWBstopSession(sessionCtx->uwbSession, true);
+            sessionCtx->uwbSession = NULL;
+        }
+
         delete sessionCtx;
     }
 }
@@ -478,17 +500,29 @@ AliroError UltraWideBandImpl::_TerminateRangingSession(SessionContextHandle sess
 
     if (connection->uwbSession)
     {
-        UWBstop(connection->uwbSession);
+        UWBstopSession(connection->uwbSession, true);
+        connection->uwbSession = NULL;
     }
 
     RemoveSession(connection);
     return ALIRO_NO_ERROR;
 }
 
-AliroError UltraWideBandImpl::_SuspendRangingSession([[maybe_unused]] SessionContextHandle, [[maybe_unused]] bool)
+AliroError UltraWideBandImpl::_SuspendRangingSession(SessionContextHandle sessionHandle, bool force)
 {
-    LOG_INF("%s", __FUNCTION__);
-    return ALIRO_ERROR_NOT_IMPLEMENTED;
+    struct uwbSessionContext *connection;
+    AliroError err;
+
+    connection = FindSession(sessionHandle);
+    VerifyOrReturnStatus(connection != NULL, ALIRO_INVALID_STATE, LOG_ERR("No Session to suspend"));
+
+    if (connection->uwbSession)
+    {
+        UWBstopSession(connection->uwbSession, false);
+        connection->uwbSession = NULL;
+    }
+
+    return ALIRO_NO_ERROR;
 }
 
 AliroError UltraWideBandImpl::_ResumeRangingSession([[maybe_unused]] SessionContextHandle)
