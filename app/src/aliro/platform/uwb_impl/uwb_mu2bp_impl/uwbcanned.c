@@ -229,9 +229,23 @@ const uint32_t UWB_SESSION_SET_DEBUG_CONFIG_SIZE = sizeof(UWB_SESSION_SET_DEBUG_
 uint8_t UWB_RANGE_START[] = {0x22, 0x00, 0x00, 0x04, /* 4-byte session_id: */ 0x00, 0x00, 0x00, 0x00 };
 const uint32_t UWB_RANGE_START_SIZE = sizeof(UWB_RANGE_START);
 
-// Start UWB ranging session
+// Resume UWB ranging session
 uint8_t UWB_RANGE_RESUME[] = {0x22, 0x21, 0x00, 0x08, /* 4-byte session_id: */ 0x00, 0x00, 0x00, 0x00, /* 4 byte STS index */ 0x00, 0x00, 0x00, 0x00 };
 const uint32_t UWB_RANGE_RESUME_SIZE = sizeof(UWB_RANGE_RESUME);
+
+// Stop Ranging NTF
+uint8_t UWB_RANGE_STOP_NTF[] = {0x21, 0x03, 0x00, 0x08, /* 4-byte session_id: */ 0x00, 0x00, 0x00, 0x00,
+                                         0x1,                                              // Number of parameters
+                                         0x0E, 0x01, 0x00,                                 // RNG_DATA_NTF
+                                        };
+const uint32_t UWB_RANGE_STOP_NTF_SIZE = sizeof(UWB_RANGE_STOP_NTF);
+
+// Start Ranging NTF
+uint8_t UWB_RANGE_START_NTF[] = {0x21, 0x03, 0x00, 0x08, /* 4-byte session_id: */ 0x00, 0x00, 0x00, 0x00,
+                                         0x1,                                              // Number of parameters
+                                         0x0E, 0x01, 0x01,                                 // RNG_DATA_NTF
+                                        };
+const uint32_t UWB_RANGE_START_NTF_SIZE = sizeof(UWB_RANGE_START_NTF);
 
 // Stop UWB ranging session
 uint8_t UWB_RANGE_STOP[] = {0x22, 0x01, 0x00, 0x04, /* 4-byte session_id: */ 0x00, 0x00, 0x00, 0x00 };

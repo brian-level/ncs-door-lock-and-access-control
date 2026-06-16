@@ -1176,7 +1176,7 @@ static int _uwb_initialize(
     {
     static uwb_init_state_t s_last_init_state = 0;
 
-    if (mUWB.init_state != s_last_init_state)
+    if (mUWB.init_state != s_last_init_state && (mUWB.dump_proto & 0x2))
     {
         LOG_INF("-- new state %d", mUWB.init_state);
         s_last_init_state = mUWB.init_state;
@@ -1229,6 +1229,11 @@ static int _uwb_initialize(
                 case UWB_SS_SUSPENDING:
                     LOG_INF("Suspending session %08X", session->session_handle);
                     UWB_NEXT_STATE(UWB_IS_SUSPEND_SESSION);
+                    break;
+
+                case UWB_SS_RESUMING:
+                    LOG_INF("Resumining session %08X", session->session_handle);
+                    UWB_NEXT_STATE(UWB_IS_RESUME_SESSION);
                     break;
 
                 case UWB_SS_STARTING:
@@ -1576,17 +1581,23 @@ static int _uwb_initialize(
 
         case UWB_IS_RESUME_SESSION:
             mUWB.command_set_count = 0;
+            mUWB.command_size[mUWB.command_set_count] = UWB_RANGE_START_NTF_SIZE;
+            mUWB.commands[mUWB.command_set_count++] = _uwb_add_session_handle(session, UWB_RANGE_START_NTF);
             mUWB.command_size[mUWB.command_set_count] = UWB_RANGE_RESUME_SIZE;
             mUWB.commands[mUWB.command_set_count++] = _uwb_add_session_handle(session, UWB_RANGE_RESUME);
+#if 0
             // second dword in command is resumed STS index which must be > last STS index used
             session->sts_index++;
             memcpy(UWB_RANGE_RESUME + UWB_SESSION_ID_OFFSET_IN_CMD + 4, &session->sts_index, sizeof(uint32_t));
+#endif
             mUWB.command_set_state = 0;
             break;
 
         case UWB_IS_SUSPEND_SESSION:
         case UWB_IS_STOP_SESSION:
             mUWB.command_set_count = 0;
+            mUWB.command_size[mUWB.command_set_count] = UWB_RANGE_STOP_NTF_SIZE;
+            mUWB.commands[mUWB.command_set_count++] = _uwb_add_session_handle(session, UWB_RANGE_STOP_NTF);
             mUWB.command_size[mUWB.command_set_count] = UWB_RANGE_STOP_SIZE;
             mUWB.commands[mUWB.command_set_count++] = _uwb_add_session_handle(session, UWB_RANGE_STOP);
             mUWB.command_set_state = 0;
@@ -2016,6 +2027,33 @@ int UWBstopSession(uwb_session_t *inSession, bool inDestroy)
             }
 
             ret = 0;
+        }
+    }
+    else
+    {
+        LOG_WRN("Not in a session, not stopping");
+    }
+
+    TimeSignalApplicationEvent();
+    return ret;
+}
+
+int UWBresumeSession(uwb_session_t *inSession)
+{
+    int ret = -EINVAL;
+
+    if (mUWB.state != UWB_IDLE)
+    {
+        if (inSession)
+        {
+            inSession->session_state = UWB_SS_RESUMING;
+            LOG_INF("SuspendSession %08X", inSession->session_handle);
+            ret = 0;
+        }
+        else
+        {
+            LOG_ERR("No session to resume");
+            ret = -1;
         }
     }
     else

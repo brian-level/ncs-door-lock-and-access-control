@@ -99,6 +99,7 @@ typedef enum
     UWB_SS_STARTED,         ///< active
     UWB_SS_SUSPENDING,      ///< suspend requested
     UWB_SS_SUSPENDED,       ///< suspended
+    UWB_SS_RESUMING,        ///< resume requested
     UWB_SS_STOPPING,        ///< stop requested
     UWB_SS_STOPPED,         ///< stopped
 }
@@ -365,6 +366,7 @@ int UWBstart(
     const int inVendorConfigDataLength);
 
 int UWBstopSession(uwb_session_t *inSession, bool inDestroy);
+int UWBresumeSession(uwb_session_t *inSession);
 int UWBstopConnection(const void *inConnectionHandle);
 
 bool UWBready(void);

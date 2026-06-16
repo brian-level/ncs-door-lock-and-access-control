@@ -288,8 +288,12 @@ AliroError UltraWideBandImpl::_HandleBleMessage(const uint8_t *data, size_t leng
             err = ALIRO_NO_ERROR;
             break;
         case ALIRO_PT_UWB_SUSPEND_REQ:
-        case ALIRO_PT_UWB_SUSPEND_RSP:
+            err = _SuspendRangingSession(sessionHandle, true);
+            break;
         case ALIRO_PT_UWB_RESUME_REQ:
+            err = _ResumeRangingSession(sessionHandle);
+            break;
+        case ALIRO_PT_UWB_SUSPEND_RSP:
         case ALIRO_PT_UWB_RESUME_RSP:
         case ALIRO_PT_UWB_SSM1:
         case ALIRO_PT_UWB_SSM3:
@@ -511,7 +515,6 @@ AliroError UltraWideBandImpl::_TerminateRangingSession(SessionContextHandle sess
 AliroError UltraWideBandImpl::_SuspendRangingSession(SessionContextHandle sessionHandle, bool force)
 {
     struct uwbSessionContext *connection;
-    AliroError err;
 
     connection = FindSession(sessionHandle);
     VerifyOrReturnStatus(connection != NULL, ALIRO_INVALID_STATE, LOG_ERR("No Session to suspend"));
@@ -519,16 +522,24 @@ AliroError UltraWideBandImpl::_SuspendRangingSession(SessionContextHandle sessio
     if (connection->uwbSession)
     {
         UWBstopSession(connection->uwbSession, false);
-        connection->uwbSession = NULL;
     }
 
     return ALIRO_NO_ERROR;
 }
 
-AliroError UltraWideBandImpl::_ResumeRangingSession([[maybe_unused]] SessionContextHandle)
+AliroError UltraWideBandImpl::_ResumeRangingSession(SessionContextHandle sessionHandle)
 {
-    LOG_INF("%s", __FUNCTION__);
-    return ALIRO_ERROR_NOT_IMPLEMENTED;
+    struct uwbSessionContext *connection;
+
+    connection = FindSession(sessionHandle);
+    VerifyOrReturnStatus(connection != NULL, ALIRO_INVALID_STATE, LOG_ERR("No Session to suspend"));
+
+    if (connection->uwbSession)
+    {
+        UWBresumeSession(connection->uwbSession);
+    }
+
+    return ALIRO_NO_ERROR;
 }
 
 } // namespace Aliro::Uwb
