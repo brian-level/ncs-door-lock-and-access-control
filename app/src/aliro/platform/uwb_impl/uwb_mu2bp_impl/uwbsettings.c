@@ -245,32 +245,34 @@ int NIrestartUWB(void)
             mNI.cal_data.aoa_threshold[1],
             mNI.cal_data.rssi_offset[0],
             mNI.cal_data.rssi_offset[1]);
-#if 1 /* leave in for debug, show the calib table */
-    int elev;
-    int azim;
 
-    for (elev = 0; elev < 11; elev++)
+    if (mNI.dump_proto & 0x4)
     {
-        for (azim = 0; azim < 11; azim++)
+        int elev;
+        int azim;
+
+        for (elev = 0; elev < 11; elev++)
         {
-#if 1
-            uint8_t lsb = UWB_SET_CALIBRATION_AOA_ANTENNAS_PDOA_CALIB_PAIR1_CH9[9 + elev * 11 * 2 + azim * 2];
-            int8_t  msb = UWB_SET_CALIBRATION_AOA_ANTENNAS_PDOA_CALIB_PAIR1_CH9[9 + elev * 11 * 2 + azim * 2 + 1];
-            int16_t pdoa = ((int16_t)msb << 8) | lsb;
-            double pdx = (double)pdoa / 16384.0;
-            char fbuf[32];
+            for (azim = 0; azim < 11; azim++)
+            {
+    #if 1
+                uint8_t lsb = UWB_SET_CALIBRATION_AOA_ANTENNAS_PDOA_CALIB_PAIR1_CH9[9 + elev * 11 * 2 + azim * 2];
+                int8_t  msb = UWB_SET_CALIBRATION_AOA_ANTENNAS_PDOA_CALIB_PAIR1_CH9[9 + elev * 11 * 2 + azim * 2 + 1];
+                int16_t pdoa = ((int16_t)msb << 8) | lsb;
+                double pdx = (double)pdoa / 16384.0;
+                char fbuf[32];
 
-            LOG_RAW("%02X%02X %s  ", msb, lsb, FloatPrint(pdx, fbuf, sizeof(fbuf)));
-#else
-            LOG_RAW("%02X,%02X ", UWB_SET_CALIBRATION_AOA_ANTENNAS_PDOA_CALIB_PAIR1_CH9[9 + elev * 11 * 2 + azim * 2],
-                    UWB_SET_CALIBRATION_AOA_ANTENNAS_PDOA_CALIB_PAIR1_CH9[9 + elev * 11 * 2 + azim * 2 + 1]);
-#endif
+                LOG_RAW("%02X%02X %s  ", msb, lsb, FloatPrint(pdx, fbuf, sizeof(fbuf)));
+    #else
+                LOG_RAW("%02X,%02X ", UWB_SET_CALIBRATION_AOA_ANTENNAS_PDOA_CALIB_PAIR1_CH9[9 + elev * 11 * 2 + azim * 2],
+                        UWB_SET_CALIBRATION_AOA_ANTENNAS_PDOA_CALIB_PAIR1_CH9[9 + elev * 11 * 2 + azim * 2 + 1]);
+    #endif
+            }
+
+            LOG_RAW("\n");
         }
-
-        LOG_RAW("\n");
     }
 
-#endif
     ret = UWBinit(mNI.sessionStateCallback,
                   mNI.antenna_mode,
                   mNI.flop_rate,
@@ -687,9 +689,9 @@ static int _CmdProto(const struct shell *shell, size_t argc, char **argv)
         proto = (int) strtoul(*++argv, NULL, 0);
     }
 
-    proto &= 0x3;
+    proto &= 0x7;
 
-    shell_print(shell, "Setting dump-protocol to %u", proto);
+    shell_print(shell, "Setting dump-protocol to x%02x", proto);
 
     mNI.dump_proto = proto;
     settings_save_one("ni/proto", &mNI.dump_proto, sizeof(mNI.dump_proto));
@@ -946,7 +948,7 @@ SHELL_STATIC_SUBCMD_SET_CREATE(sub_ni,
                                        " Set front/back ANT switch GPIO invert [1=yes, 0=no] (0)\n",
                                        _CmdInvert, 1, 1),
                                SHELL_CMD_ARG(proto, NULL,
-                                       " Show UIC protocol. Bitmask [0=no,1=show UIC,2=show states] (0)\n",
+                                       " Show UIC protocol. Bitmask [0=no,1=show UIC,2=show states,3=show calib table] (0)\n",
                                        _CmdProto, 1, 1),
                                SHELL_CMD_ARG(antmode, NULL,
                                        " Set Antenna configuration [0x7=3front,0x11=1front1back,0x13=2front1back] (0x7)\n",
